@@ -1,0 +1,118 @@
+{
+  "version": "3.0.0",
+  "verifiedAt": "2026-08-15",
+  "paths": [
+    {
+      "id": "Corporate",
+      "title": "Корпоративное право",
+      "description": "От формы бизнеса до управления и денег компании",
+      "icon": "corporate",
+      "lessonIds": [
+        "c01",
+        "c02",
+        "c03",
+        "c04",
+        "c05",
+        "c06",
+        "c07",
+        "c08",
+        "c09",
+        "c10",
+        "c11",
+        "c12",
+        "c13",
+        "c14"
+      ],
+      "catalogFiles": [
+        "content/catalog/corporate-1.json",
+        "content/catalog/corporate-2.json"
+      ]
+    },
+    {
+      "id": "Tax",
+      "title": "Налоги",
+      "description": "IS, IR, TVA и налоги на распределение",
+      "icon": "tax",
+      "lessonIds": [
+        "t01",
+        "t02",
+        "t03",
+        "t04",
+        "t05"
+      ],
+      "catalogFiles": [
+        "content/catalog/tax-1.json"
+      ]
+    },
+    {
+      "id": "Immigration",
+      "title": "Иммиграция",
+      "description": "Статусы, права, сроки и процедуры",
+      "icon": "immigration",
+      "lessonIds": [
+        "i01",
+        "i02",
+        "i03",
+        "i04",
+        "i05",
+        "i06",
+        "i07",
+        "i08",
+        "i09",
+        "i10",
+        "i11",
+        "i12",
+        "i13"
+      ],
+      "catalogFiles": [
+        "content/catalog/immigration-1.json",
+        "content/catalog/immigration-2.json"
+      ]
+    },
+    {
+      "id": "Real Estate",
+      "title": "Недвижимость",
+      "description": "Покупка, аренда, SCI и защита сторон",
+      "icon": "estate",
+      "lessonIds": [
+        "r01",
+        "r02",
+        "r03",
+        "r04",
+        "r05",
+        "r06",
+        "r07",
+        "r08",
+        "r09",
+        "r10",
+        "r11"
+      ],
+      "catalogFiles": [
+        "content/catalog/real-estate-1.json"
+      ]
+    }
+  ],
+  "searchFiles": [
+    "content/search/corporate-1.json",
+    "content/search/corporate-2.json",
+    "content/search/tax-1.json",
+    "content/search/immigration-1.json",
+    "content/search/immigration-2.json",
+    "content/search/real-estate-1.json",
+    "content/search/real-estate-2.json"
+  ],
+  "caseIndexFiles": [
+    "content/cases/index-1.json"
+  ],
+  "metaFiles": [
+    "content/meta/meta-1.json",
+    "content/meta/meta-2.json",
+    "content/meta/meta-3.json",
+    "content/meta/meta-4.json",
+    "content/meta/meta-5.json"
+  ],
+  "homeCase": "case9",
+  "updatesFile": "content/updates.json",
+  "lessonBase": "content/lessons/",
+  "caseBase": "content/cases/"
+}

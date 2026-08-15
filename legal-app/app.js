@@ -1,0 +1,9 @@
+import{boot}from'./js/data.js';import{shell,loading,errorBox}from'./js/ui.js';import{home,bindHome}from'./js/home.js';import{learn,bindLearn}from'./js/learn.js';import{solve,bindSolve}from'./js/solve.js';import{searchPage,bindSearch}from'./js/search-page.js';import{profile,bindProfile}from'./js/profile.js';import{openLesson}from'./js/lesson.js';import{openCase}from'./js/case.js';
+const root=document.querySelector('#root');let page=(location.hash||'#home').slice(1);const allowed=new Set(['home','learn','solve','search','profile']);if(!allowed.has(page))page='home';
+const ctx={refresh:()=>render(),openLesson:(id)=>openLesson(id,ctx),openCase:(id)=>openCase(id,ctx),navigate};
+function navigate(p){if(!allowed.has(p))p='home';page=p;if(location.hash!==`#${p}`)history.pushState(null,'',`#${p}`);render()}
+async function render(){let body='';try{if(page==='home')body=await home(ctx);if(page==='learn')body=await learn(ctx);if(page==='solve')body=await solve(ctx);if(page==='search')body=searchPage(ctx);if(page==='profile')body=await profile(ctx);shell(root,page,body);root.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>navigate(b.dataset.nav));if(page==='home')bindHome(root,ctx);if(page==='learn')bindLearn(root,ctx);if(page==='solve')bindSolve(root,ctx);if(page==='search')bindSearch(root,ctx);if(page==='profile')bindProfile(root,ctx)}catch(e){console.error(e);shell(root,page,errorBox(e));root.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>navigate(b.dataset.nav))}}
+window.addEventListener('hashchange',()=>{const p=(location.hash||'#home').slice(1);if(allowed.has(p)){page=p;render()}});
+root.innerHTML=loading('Загрузка LexiFrance...');
+try{await boot();await render()}catch(e){console.error(e);root.innerHTML=`<main style="padding:20px">${errorBox(e)}</main>`}
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(console.error));
