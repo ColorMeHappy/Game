@@ -1,10 +1,10 @@
 import{boot,idx}from'./js/data.js';
 import{migrateCourseV5}from'./js/state.js';
 import{shell,loading,errorBox}from'./js/ui.js';
-import{home,bindHome,learn,bindLearn,solve,bindSolve,searchPage,bindSearch,profile,bindProfile}from'./js/pages.js?v=8';
-import{openLesson}from'./js/lesson.js?v=8';
-import{openCase}from'./js/case.js?v=8';
-import{enhanceLesson}from'./js/legal-enhance.js?v=8';
+import{home,bindHome,learn,bindLearn,solve,bindSolve,searchPage,bindSearch,profile,bindProfile}from'./js/pages.js?v=9';
+import{openLesson}from'./js/lesson.js?v=9';
+import{openCase}from'./js/case.js?v=9';
+import{enhanceLesson}from'./js/legal-enhance.js?v=9';
 
 function lockViewportZoom(){
   const stop=e=>e.preventDefault();
