@@ -1,4 +1,4 @@
-let index=null;const catalogs=new Map(),lessons=new Map(),quizShards=new Map(),cases=new Map();let caseIndex=null,updates=null,searchData=null;
+let index=null;const catalogs=new Map(),lessons=new Map(),quizzes=new Map(),cases=new Map();let caseIndex=null,updates=null,searchData=null;
 async function get(url){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(`LOAD ${url} ${r.status}`);return r.json()}
 export async function boot(){index=await get('./content/app-index.json');return index}
 export const idx=()=>index;
@@ -8,7 +8,7 @@ export function pathForLesson(id){id=mapLessonId(id);return index.paths.find(p=>
 export async function catalog(path){if(catalogs.has(path))return catalogs.get(path);const p=index.paths.find(x=>x.id===path);if(!p)return[];const rows=[];for(const f of p.catalogFiles){const d=await get(`./${f}`);rows.push(...d.items)}catalogs.set(path,rows);return rows}
 export async function catalogItem(id){id=mapLessonId(id);const p=pathForLesson(id);return(await catalog(p)).find(x=>x.id===id)}
 export async function lesson(id){id=mapLessonId(id);if(lessons.has(id))return lessons.get(id);const l=await get(`./${index.lessonBase}${id}.json`);lessons.set(id,l);return l}
-export async function quizPack(id){id=mapLessonId(id);const path=pathForLesson(id),file=index.quizFiles?.[path];if(!file)throw new Error(`QUIZ FILE ${path}`);if(!quizShards.has(path)){const d=await get(`./${file}`);quizShards.set(path,d.packs||[])}const q=quizShards.get(path).find(x=>x.lessonId===id);if(!q)throw new Error(`QUIZ ID ${id}`);if((q.questions||[]).length!==10)throw new Error(`QUIZ COUNT ${id}`);return q}
+export async function quizPack(id){id=mapLessonId(id);if(quizzes.has(id))return quizzes.get(id);const q=await get(`./${index.quizBase||'content/quizzes/'}${id}.json`);if(q.lessonId!==id)throw new Error(`QUIZ ID ${id}`);if((q.questions||[]).length!==10)throw new Error(`QUIZ COUNT ${id}`);quizzes.set(id,q);return q}
 export async function casesList(){if(caseIndex)return caseIndex;const out=[];for(const f of index.caseIndexFiles){const d=await get(`./${f}`);for(const raw of d.cases){const c={...raw,linkedLessons:[...new Set((raw.linkedLessons||[]).map(mapLessonId))]};out.push(c)}}caseIndex=out;return out}
 export async function oneCase(id){if(cases.has(id))return cases.get(id);const c=await get(`./${index.caseBase}${id}.json`);c.linkedLessons=[...new Set((c.linkedLessons||[]).map(mapLessonId))];cases.set(id,c);return c}
 export const usableStatus=s=>s==='CURRENT'||s==='UPDATED';
