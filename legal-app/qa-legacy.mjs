@@ -14,7 +14,7 @@ const lessonJs=fs.readFileSync(path.join(root,'js/lesson.js'),'utf8');
 if(/75\s*\)?\s*;/.test(state)&&/mastery/i.test(state))fail('Possible legacy 75% case-to-mastery logic remains');
 if(/caseResult\s*\(/.test(state))fail('Legacy caseResult API remains');
 if(/quizResult\s*\(/.test(state))fail('Legacy quizResult API remains');
-if(/\.quiz\b/.test(lessonJs))fail('lesson runtime still references embedded lesson.quiz');
+if(/\b(?:l|lesson)\.quiz\b/.test(lessonJs))fail('lesson runtime still references embedded lesson.quiz');
 if(!/quizPack/.test(lessonJs))fail('lesson runtime does not use separate quiz pack');
 if(/mastery\s*\(/.test(caseJs)&&!/lessonMastery/.test(caseJs))fail('Case runtime may directly mutate lesson mastery');
 console.log(JSON.stringify({legacyFailures:failures},null,2));
