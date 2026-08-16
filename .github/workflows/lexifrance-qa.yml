@@ -1,0 +1,29 @@
+name: LexiFrance QA
+
+on:
+  push:
+    branches:
+      - main
+      - lexifrance-v5-quality
+    paths:
+      - 'legal-app/**'
+      - '.github/workflows/lexifrance-qa.yml'
+  pull_request:
+    paths:
+      - 'legal-app/**'
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JS syntax
+        run: |
+          node --check legal-app/app.js
+          for f in legal-app/js/*.js; do node --check "$f"; done
+          node --check legal-app/qa.mjs
+      - name: Validate content, quiz, cases, updates and PWA
+        run: node legal-app/qa.mjs
