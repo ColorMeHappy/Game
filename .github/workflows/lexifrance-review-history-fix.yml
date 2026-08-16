@@ -1,0 +1,27 @@
+name: LexiFrance one-time review history fix
+on:
+  push:
+    branches:
+      - lexifrance-v5-solve2
+    paths:
+      - 'legal-app/review-history-fix.mjs'
+      - '.github/workflows/lexifrance-review-history-fix.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node legal-app/review-history-fix.mjs
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add legal-app/js/lesson.js
+          git diff --cached --quiet && exit 0
+          git commit -m "Record all Mastery 100 Quiz retakes in review history"
+          git push
