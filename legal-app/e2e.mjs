@@ -23,10 +23,10 @@ async function smokeViewport(width,height,label){
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
   check(overflow<=1,`${label}: no horizontal overflow`);
   check(!(await page.locator('body').innerText()).includes('PETR'),`${label}: no hardcoded Petr`);
-  await page.locator('[data-nav="learn"]').click();
+  await page.locator('.nav [data-nav="learn"]').click();
   await page.waitForSelector('.lesson-row');
   check(await page.locator('.lesson-row').count()===5,`${label}: Corporate keeps 5 full lessons`);
-  await page.locator('[data-nav="solve"]').click();
+  await page.locator('.nav [data-nav="solve"]').click();
   await page.waitForSelector('.case-row');
   check(await page.locator('.case-row').count()===11,`${label}: 11 SOLVE cases render`);
   check(errors.length===0,`${label}: no runtime page errors${errors.length?` (${errors.join('; ')})`:''}`);
@@ -91,7 +91,7 @@ check(s.xp===xpAt100,'retake cannot farm full lesson XP');
 
 await page.locator('[data-save]').click();
 await page.locator('[data-close]').click();
-await page.locator('[data-nav="profile"]').click();
+await page.locator('.nav [data-nav="profile"]').click();
 await page.waitForSelector('.saved-list');
 check(await page.locator('[data-saved-lesson="corp-01"]').count()===1,'saved lesson is discoverable in Profile');
 
@@ -100,7 +100,7 @@ s=await readState(page);
 check(masteryOf(s,'corp-01')===100,'Mastery persists after reload');
 check((s.saved||[]).includes('corp-01'),'saved materials persist after reload');
 
-await page.locator('[data-nav="solve"]').click();
+await page.locator('.nav [data-nav="solve"]').click();
 await page.waitForSelector('[data-case="case1"]');
 await page.locator('[data-case="case1"]').click();
 await page.waitForSelector('.modal #caseStage');
@@ -138,7 +138,7 @@ s=await readState(page);
 check(s.caseHistory.case3.completed===true&&s.caseHistory.case3.perfectRun===true,'multi-step case tracks a genuine perfect run');
 await page.locator('[data-close]').click();
 
-await page.locator('[data-nav="search"]').click();
+await page.locator('.nav [data-nav="search"]').click();
 await page.waitForSelector('#searchInput');
 const searchChecks=[
   ['какую фирму открыть','corp-01'],['micro или sasu','corp-01'],['могу ли я дать деньги sci','corp-02'],['заем своей компании','corp-02'],
@@ -154,7 +154,7 @@ for(const [query,id] of searchChecks){
   check(await page.locator(`[data-lesson="${id}"]`).count()>0,`Search: "${query}" finds ${id}`);
 }
 
-await page.locator('[data-nav="home"]').click();
+await page.locator('.nav [data-nav="home"]').click();
 await page.waitForSelector('.top');
 await page.evaluate(async()=>{await navigator.serviceWorker.ready;if(!navigator.serviceWorker.controller)location.reload()});
 await page.waitForSelector('.top',{timeout:15000});
@@ -163,7 +163,7 @@ await context.setOffline(true);
 await page.reload({waitUntil:'domcontentloaded'});
 await page.waitForSelector('.top',{timeout:15000});
 check(!(await page.locator('body').innerText()).includes('Загрузка LexiFrance...'),'offline launch boots from cached shell/content');
-await page.locator('[data-nav="learn"]').click();
+await page.locator('.nav [data-nav="learn"]').click();
 await page.waitForSelector('[data-lesson="corp-01"]');
 await page.locator('[data-lesson="corp-01"]').click();
 await page.waitForSelector('.modal .offline-copy');
