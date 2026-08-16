@@ -26,6 +26,8 @@ jobs:
           node --check legal-app/app.js
           for f in legal-app/js/*.js; do node --check "$f"; done
           for f in legal-app/qa*.mjs legal-app/e2e.mjs legal-app/e2e-wrapper.mjs legal-app/webkit-smoke.mjs legal-app/webkit-wrapper.mjs; do node --check "$f"; done
+      - name: Import/export graph
+        run: node legal-app/qa-imports.mjs
       - name: Core integrity
         run: node legal-app/qa.mjs
       - name: Quiz editorial integrity
