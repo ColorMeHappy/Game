@@ -4,6 +4,7 @@ import{shell,loading,errorBox}from'./js/ui.js';
 import{home,bindHome,learn,bindLearn,solve,bindSolve,searchPage,bindSearch,profile,bindProfile}from'./js/pages.js?v=8';
 import{openLesson}from'./js/lesson.js?v=8';
 import{openCase}from'./js/case.js?v=8';
+import{enhanceLesson}from'./js/legal-enhance.js?v=8';
 
 function lockViewportZoom(){
   const stop=e=>e.preventDefault();
@@ -21,7 +22,7 @@ const appRoot=document.querySelector('#root');
 let page=(location.hash||'#home').slice(1);
 const allowed=new Set(['home','learn','solve','search','profile']);
 if(!allowed.has(page))page='home';
-const ctx={refresh:()=>render(),openLesson:id=>openLesson(id,ctx),openCase:id=>openCase(id,ctx),navigate};
+const ctx={refresh:()=>render(),openLesson:async id=>{await openLesson(id,ctx);await enhanceLesson(id)},openCase:id=>openCase(id,ctx),navigate};
 function navigate(p){if(!allowed.has(p))p='home';page=p;if(location.hash!==`#${p}`)history.pushState(null,'',`#${p}`);render()}
 async function render(){let body='';try{if(page==='home')body=await home(ctx);if(page==='learn')body=await learn(ctx);if(page==='solve')body=await solve(ctx);if(page==='search')body=searchPage(ctx);if(page==='profile')body=await profile(ctx);shell(appRoot,page,body);appRoot.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>navigate(b.dataset.nav));if(page==='home')bindHome(appRoot,ctx);if(page==='learn')bindLearn(appRoot,ctx);if(page==='solve')bindSolve(appRoot,ctx);if(page==='search')bindSearch(appRoot,ctx);if(page==='profile')bindProfile(appRoot,ctx)}catch(e){console.error(e);shell(appRoot,page,errorBox(e))}}
 window.addEventListener('hashchange',()=>{const p=(location.hash||'#home').slice(1);if(allowed.has(p)){page=p;render()}});
