@@ -3,7 +3,7 @@ const STATIC=`lexifrance-${VERSION}-static`;
 const RUNTIME=`lexifrance-${VERSION}-runtime`;
 const LEGAL=`lexifrance-${VERSION}-legal`;
 const STATIC_ASSETS=['./icon.svg','./manifest.webmanifest'];
-const RUNTIME_ASSETS=['./','./index.html','./app.css?v=8','./quiz.css?v=8','./app.js?v=8','./js/icons.js','./js/state.js','./js/data.js','./js/ui.js','./js/pages.js?v=8','./js/lesson.js?v=8','./js/case.js?v=8'];
+const RUNTIME_ASSETS=['./','./index.html','./app.css?v=8','./quiz.css?v=8','./app.js?v=8','./js/icons.js','./js/state.js','./js/data.js','./js/ui.js','./js/pages.js?v=8','./js/lesson.js?v=8','./js/case.js?v=8','./js/legal-enhance.js?v=8'];
 const LEGAL_BOOT=['./content/app-index.json','./content/updates.json'];
 self.addEventListener('install',event=>event.waitUntil(Promise.all([caches.open(STATIC).then(c=>c.addAll(STATIC_ASSETS)),caches.open(RUNTIME).then(c=>c.addAll(RUNTIME_ASSETS)),caches.open(LEGAL).then(c=>c.addAll(LEGAL_BOOT))]).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('lexifrance-')&&![STATIC,RUNTIME,LEGAL].includes(k)).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
