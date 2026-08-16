@@ -1,0 +1,1 @@
+const report=e=>{const msg=String(e?.stack||e).replace(/\r?\n/g,' | ').replace(/%/g,'%25');console.error(`::error file=legal-app/webkit-smoke.mjs::${msg}`);process.exitCode=1};process.on('uncaughtException',report);process.on('unhandledRejection',report);try{await import('./webkit-smoke.mjs')}catch(e){report(e)}

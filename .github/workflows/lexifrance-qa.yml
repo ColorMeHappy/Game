@@ -25,7 +25,7 @@ jobs:
         run: |
           node --check legal-app/app.js
           for f in legal-app/js/*.js; do node --check "$f"; done
-          for f in legal-app/qa*.mjs legal-app/e2e.mjs legal-app/e2e-wrapper.mjs legal-app/webkit-smoke.mjs; do node --check "$f"; done
+          for f in legal-app/qa*.mjs legal-app/e2e.mjs legal-app/e2e-wrapper.mjs legal-app/webkit-smoke.mjs legal-app/webkit-wrapper.mjs; do node --check "$f"; done
       - name: Core integrity
         run: node legal-app/qa.mjs
       - name: Quiz editorial integrity
@@ -79,4 +79,4 @@ jobs:
           python3 -m http.server 4173 > /tmp/lexifrance-http-webkit.log 2>&1 &
           sleep 2
       - name: iPhone portrait-only WebKit QA
-        run: timeout 90s node legal-app/webkit-smoke.mjs
+        run: timeout 90s node legal-app/webkit-wrapper.mjs
