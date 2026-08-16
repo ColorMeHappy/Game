@@ -25,12 +25,16 @@ jobs:
           node --check legal-app/app.js
           for f in legal-app/js/*.js; do node --check "$f"; done
           node --check legal-app/qa.mjs
+          node --check legal-app/qa-assets.mjs
           node --check legal-app/e2e.mjs
       - name: Validate content, quiz, cases, updates and PWA
-        run: node legal-app/qa.mjs
+        run: |
+          node legal-app/qa.mjs
+          node legal-app/qa-assets.mjs
 
   browser:
     needs: integrity
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
