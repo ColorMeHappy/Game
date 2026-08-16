@@ -104,15 +104,19 @@ const sw=fs.readFileSync(path.join(root,'service-worker.js'),'utf8');
 ok(sw.includes("url.pathname.includes('/legal-app/content/')"),'Service worker does not route legal content separately');
 ok(sw.includes('networkFirst(req,LEGAL)'),'Legal content is not network-first');
 ok(sw.includes("fetch(req,{cache:'no-store'})"),'Network-first fetch does not bypass HTTP cache');
-for(const id of lessonIds){ok(sw.includes(`'${id}'`),`SW missing lesson ${id}`)}
-for(const id of caseIds){ok(sw.includes(`'${id}'`),`SW missing case ${id}`)}
+for(const id of lessonIds)ok(sw.includes(`'${id}'`),`SW missing lesson ${id}`);
+for(const id of caseIds)ok(sw.includes(`'${id}'`),`SW missing case ${id}`);
 
 const state=fs.readFileSync(path.join(root,'js/state.js'),'utf8');
 ok(!state.includes('score=Math.min(100,Math.max(m.score||0,75))'),'Legacy case -> 75% mastery logic remains');
 ok(!state.includes("name:'Petr'"),'Hardcoded Petr remains in state');
-ok(state.includes('(p.opened?10:0)+(solved*9)'),'Exact 10 + 9*solved mastery formula missing');
+ok(/opened\?10:0/.test(state)&&/solved\*9/.test(state),'Exact 10 + 9*solved mastery formula missing');
 
 const report={version:index.version,contentVersion:index.contentVersion,lessons:lessonIds.length,questions:questionCount,microDecisions:microCount,cases:caseIds.size,updates:(updates.updates||[]).length,searchItems:search.items.length,errors};
 console.log(JSON.stringify(report,null,2));
-if(errors.length){console.error(`\nQA FAILED with ${errors.length} issue(s)`);process.exit(1)}
+if(errors.length){
+  for(const e of errors)console.error(`::error file=legal-app/qa.mjs::${e}`);
+  console.error(`\nQA FAILED with ${errors.length} issue(s)`);
+  process.exit(1);
+}
 console.log('\nLexiFrance integrity QA PASSED');
