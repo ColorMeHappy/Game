@@ -28,6 +28,7 @@ jobs:
           node --check legal-app/qa-assets.mjs
           node --check legal-app/qa-legacy.mjs
           node --check legal-app/e2e.mjs
+          node --check legal-app/webkit-smoke.mjs
       - name: Validate content, quiz, cases, updates and PWA
         run: |
           node legal-app/qa.mjs
@@ -43,7 +44,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install browser test runtime
+      - name: Install Chromium test runtime
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
@@ -53,3 +54,23 @@ jobs:
           sleep 2
       - name: Mobile, Mastery, SOLVE, Search and offline E2E
         run: timeout 90s node legal-app/e2e.mjs
+
+  webkit:
+    needs: integrity
+    timeout-minutes: 3
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install WebKit test runtime
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps webkit
+      - name: Start static server
+        run: |
+          python3 -m http.server 4173 > /tmp/lexifrance-http-webkit.log 2>&1 &
+          sleep 2
+      - name: iPhone WebKit smoke
+        run: timeout 60s node legal-app/webkit-smoke.mjs
