@@ -25,6 +25,6 @@ if(!app.includes('portraitGuard')||!app.includes("lock('portrait-primary')"))bad
 if(!sw.includes("const VERSION='v10'"))bad('service worker v10');
 if(!sw.includes('Promise.allSettled')||!sw.includes('bestEffortLegal'))bad('best effort legal precache');
 if(!sw.includes('if(r&&r.ok)')||!sw.includes('if(hit)return hit'))bad('network-first invalid response fallback');else ok('network-first non-OK fallback');
-if(!data.includes('normalizeMeta')||!data.includes('delete d.contentVersion'))bad('runtime metadata normalization');
+if(!data.includes('normalizeMeta')||!/delete\s+(?:data|d)\.contentVersion/.test(data))bad('runtime metadata normalization');else ok('runtime metadata normalization');
 if(app.includes('Petr')||pages.includes('Petr'))bad('hardcoded Petr');
 if(fail.length){console.error(`INTEGRITY FAILED ${fail.length}`);process.exit(1)}console.log('INTEGRITY PASSED');
