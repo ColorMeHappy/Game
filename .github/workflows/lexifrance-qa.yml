@@ -26,11 +26,13 @@ jobs:
           for f in legal-app/js/*.js; do node --check "$f"; done
           node --check legal-app/qa.mjs
           node --check legal-app/qa-assets.mjs
+          node --check legal-app/qa-legacy.mjs
           node --check legal-app/e2e.mjs
       - name: Validate content, quiz, cases, updates and PWA
         run: |
           node legal-app/qa.mjs
           node legal-app/qa-assets.mjs
+          node legal-app/qa-legacy.mjs
 
   browser:
     needs: integrity
