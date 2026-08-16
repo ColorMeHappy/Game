@@ -1,108 +1,14 @@
-import{idx,catalog,legalUpdates,recommendedCase,casesList,search}from'./data.js';
+import{idx,catalog,legalUpdates,recommendedCase,casesList,search,relatedLessons,usableStatus}from'./data.js';
 import{state,save,mastery,masteryLabel,pathMastery,dueReviews,setTheme,setFont}from'./state.js';
-import{section,levelCard,masteryBar,pathCard,errorBox}from'./ui.js';
-import{pathIcon,icon}from'./icons.js';
-
-export async function home(){
-  try{
-    const app=idx();
-    const path=state.currentPath||'Corporate';
-    const items=await catalog(path);
-    let next=items.find(x=>mastery(x.id).score<35)||items[0];
-    if(state.currentLesson){
-      const current=items.find(x=>x.id===state.currentLesson);
-      if(current&&mastery(current.id).score<90)next=current;
-    }
-    const [featuredCase,updates]=await Promise.all([recommendedCase(),legalUpdates()]);
-    return `<div class="eyebrow">Bonjour, ${(state.name||'Petr').toUpperCase()}</div>
-      <h1 class="display">Ваше право.<br>Без тумана.</h1>
-      ${levelCard()}
-      <section class="section">${section('01','Продолжить обучение',`${next.duration} мин`)}
-        <div class="card continue-card" data-lesson="${next.id}">
-          <div class="square-icon">${pathIcon(next.path)}</div>
-          <div><div class="tag">${app.paths.find(p=>p.id===next.path)?.title||next.path}</div><h3>${next.title}</h3>${masteryBar(next.id)}<div class="small" style="margin-top:6px">${next.subtopicCount} подтем · +${next.xp} XP</div></div>
-          <button class="round-go hit" aria-label="Открыть урок">${icon('arrow')}</button>
-        </div>
-      </section>
-      <section class="section">${section('02','Решить ситуацию','Практика')}
-        <div class="card solve-feature" data-case="${featuredCase.id}"><div class="square-icon">${icon('solve')}</div><div><div class="tag">Рекомендованный кейс</div><h3>${featuredCase.title}</h3><div class="small">${featuredCase.prompt}</div></div><div>${icon('arrow')}</div></div>
-      </section>
-      <section class="section">${section('03','Карта знаний','Mastery')}<div class="path-grid">${app.paths.map(p=>pathCard(p)).join('')}</div></section>
-      <section class="section">${section('04','Право изменилось','Обновления')}<div style="display:flex;flex-direction:column;gap:9px">${updates.slice(0,2).map(u=>`<div class="card update"><div class="update-date"><b>${(u.date||'').split('.')[0]}</b></div><div><h3>${u.title}</h3><p>${u.text}</p></div><a href="${u.url}" target="_blank" rel="noopener" aria-label="Открыть источник">${icon('external')}</a></div>`).join('')}</div></section>`;
-  }catch(e){return errorBox(e)}
-}
-
-export function bindHome(root,ctx){
-  root.querySelectorAll('[data-lesson]').forEach(x=>x.onclick=()=>ctx.openLesson(x.dataset.lesson));
-  root.querySelectorAll('[data-case]').forEach(x=>x.onclick=()=>ctx.openCase(x.dataset.case));
-}
-
-export async function learn(){
-  try{
-    const app=idx();
-    const path=state.currentPath||app.paths[0].id;
-    const p=app.paths.find(x=>x.id===path)||app.paths[0];
-    const items=await catalog(p.id);
-    const pct=pathMastery(p.lessonIds);
-    const due=new Set(dueReviews(p.lessonIds));
-    const order=p.lessonIds;
-    const pos=new Map(order.map((id,i)=>[id,i]));
-    const available=id=>{const i=pos.get(id);return i===0||mastery(order[i-1]).score>=35};
-    const chapters=p.chapters.map((ch,ci)=>{
-      const chapterItems=ch.lessonIds.map(id=>items.find(x=>x.id===id)).filter(Boolean);
-      const rows=chapterItems.map(l=>{
-        const m=mastery(l.id);const lab=masteryLabel(m.score);const open=available(l.id);
-        return `<div class="card lesson-row ${m.score>=35?'done':''} ${open?'':'locked'}" ${open?`data-lesson="${l.id}"`:''}>
-          <div class="lesson-num">${m.score>=90?icon('check'):open?String(pos.get(l.id)+1).padStart(2,'0'):icon('lock')}</div>
-          <div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="tag">${lab[1]} ${m.score}%</span>${due.has(l.id)?'<span class="status current">Повторить</span>':''}</div><h3>${l.title}</h3><div class="lesson-meta"><span>${l.duration} мин</span><span>+${l.xp} XP</span><span class="subtopic-pill">${l.subtopicCount} подтем</span></div></div>
-          <div class="lesson-xp">${open?icon('arrow'):''}</div>
-        </div>`;
-      }).join('');
-      return `<section class="chapter-block"><div class="chapter-head"><div class="chapter-index">${String(ci+1).padStart(2,'0')}</div><div><h2>${ch.title}</h2><p>${ch.description}</p></div></div><div class="lesson-list">${rows}</div></section>`;
-    }).join('');
-    return `<div class="eyebrow">LEARN · система знаний</div><h1 class="display">Изучайте последовательно</h1><p class="page-copy">Каждый урок посвящен одной законченной теме. Внутри находятся связанные подтемы. Следующий урок открывается после понимания предыдущего.</p><div class="tabs">${app.paths.map(x=>`<button class="${x.id===p.id?'active':''}" data-path="${x.id}">${x.title}</button>`).join('')}</div><div class="card learn-banner" style="margin-top:12px"><div class="square-icon" style="width:50px;height:50px">${pathIcon(p.id)}</div><div><div class="tag">${p.title}</div><b>${pct}% освоено</b><div class="progress" style="margin-top:6px"><i style="width:${pct}%"></i></div></div><span class="small">${p.lessonIds.length} уроков</span></div>${chapters}`;
-  }catch(e){return errorBox(e)}
-}
-
-export function bindLearn(root,ctx){
-  root.querySelectorAll('[data-path]').forEach(b=>b.onclick=()=>{state.currentPath=b.dataset.path;state.currentLesson=null;save();ctx.refresh()});
-  root.querySelectorAll('[data-lesson]').forEach(x=>x.onclick=()=>ctx.openLesson(x.dataset.lesson));
-}
-
-export async function solve(){
-  try{
-    const list=await casesList();
-    return `<div class="eyebrow">SOLVE · практическое право</div><h1 class="display">Решайте как юрист</h1><p class="page-copy">Сначала определите юридическую проблему, затем выберите действие и увидьте последствия. После кейса можно открыть урок, который объясняет правило целиком.</p><div class="case-list">${list.map((c,i)=>`<div class="card case-row" data-case="${c.id}"><div class="tag">${String(i+1).padStart(2,'0')} · ${c.area}</div><h3>${c.title}</h3><p>${c.prompt}</p></div>`).join('')}</div>`;
-  }catch(e){return errorBox(e)}
-}
-
+import{section,levelCard,masteryBar,pathCard,errorBox,statusBadge}from'./ui.js';import{pathIcon,icon}from'./icons.js';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+export async function home(){try{const app=idx(),path=state.currentPath||'Corporate',items=await catalog(path);let next=items.find(x=>mastery(x.id).score<37)||items.find(x=>mastery(x.id).score<100)||items[0];if(state.currentLesson){const c=items.find(x=>x.id===state.currentLesson);if(c&&mastery(c.id).score<100)next=c}const [c,updates]=await Promise.all([recommendedCase(),legalUpdates()]);const hello=state.name?`Bonjour, ${esc(state.name.toUpperCase())}`:'Bonjour';return `<div class="eyebrow">${hello}</div><h1 class="display">Ваше право.<br>Без тумана.</h1>${levelCard()}<section class="section">${section('01','Продолжить обучение',`${next.duration} мин`)}<div class="card continue-card" data-lesson="${next.id}"><div class="square-icon">${pathIcon(next.path)}</div><div><div class="tag">${app.paths.find(p=>p.id===next.path)?.title||next.path}</div><h3>${esc(next.title)}</h3>${masteryBar(next.id)}<div class="small" style="margin-top:6px">${next.subtopicCount} подтем · +${next.xp} XP за 100%</div></div><button class="round-go hit">${icon('arrow')}</button></div></section>${c?`<section class="section">${section('02','Решить ситуацию','Практика')}<div class="card solve-feature" data-case="${c.id}"><div class="square-icon">${icon('solve')}</div><div><div class="tag">Рекомендованный кейс · Проверено</div><h3>${esc(c.title)}</h3><div class="small">${esc(c.prompt)}</div></div><div>${icon('arrow')}</div></div></section>`:''}<section class="section">${section('03','Карта знаний','Mastery')}<div class="path-grid">${app.paths.map(pathCard).join('')}</div></section><section class="section">${section('04','Право изменилось','Обновления')}<div style="display:flex;flex-direction:column;gap:9px">${updates.filter(u=>usableStatus(u.status)).slice(0,2).map(u=>`<div class="card update"><div class="update-date"><b>${esc((u.date||'').split('.')[0])}</b></div><div><h3>${esc(u.title)}</h3><p>${esc(u.text||u.now||'')}</p></div><a href="${u.source?.url||u.url}" target="_blank" rel="noopener">${icon('external')}</a></div>`).join('')}</div></section>`}catch(e){return errorBox(e)}}
+export function bindHome(root,ctx){root.querySelectorAll('[data-lesson]').forEach(x=>x.onclick=()=>ctx.openLesson(x.dataset.lesson));root.querySelectorAll('[data-case]').forEach(x=>x.onclick=()=>ctx.openCase(x.dataset.case))}
+export async function learn(){try{const app=idx(),path=state.currentPath||app.paths[0].id,p=app.paths.find(x=>x.id===path)||app.paths[0],items=await catalog(p.id),pct=pathMastery(p.lessonIds),due=new Set(dueReviews(p.lessonIds));const order=p.lessonIds,pos=new Map(order.map((id,i)=>[id,i]));const available=id=>{const i=pos.get(id);return i===0||mastery(order[i-1]).score>=37};return `<div class="eyebrow">LEARN · система знаний</div><h1 class="display">Изучайте последовательно</h1><p class="page-copy">Один урок - одна законченная юридическая тема. 10% Mastery дается за первое открытие, еще по 9% - за каждый из 10 уникальных вопросов.</p><div class="tabs">${app.paths.map(x=>`<button class="${x.id===p.id?'active':''}" data-path="${x.id}">${x.title}</button>`).join('')}</div><div class="card learn-banner" style="margin-top:12px"><div class="square-icon" style="width:50px;height:50px">${pathIcon(p.id)}</div><div><div class="tag">${p.title}</div><b>${pct}% освоено</b><div class="progress" style="margin-top:6px"><i style="width:${pct}%"></i></div></div><span class="small">${p.lessonIds.length} уроков</span></div>${p.chapters.map((ch,ci)=>{const chapterItems=ch.lessonIds.map(id=>items.find(x=>x.id===id)).filter(Boolean);return `<section class="chapter-block"><div class="chapter-head"><div class="chapter-index">${String(ci+1).padStart(2,'0')}</div><div><h2>${esc(ch.title)}</h2><p>${esc(ch.description)}</p></div></div><div class="lesson-list">${chapterItems.map(l=>{const m=mastery(l.id),lab=masteryLabel(m.score),open=available(l.id);return `<div class="card lesson-row ${m.score===100?'done':''} ${open?'':'locked'}" ${open?`data-lesson="${l.id}"`:''}><div class="lesson-num">${m.score===100?icon('check'):open?String(pos.get(l.id)+1).padStart(2,'0'):icon('lock')}</div><div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="tag">${lab[1]} ${m.score}%</span>${due.has(l.id)?'<span class="status current">Повторить</span>':''}</div><h3>${esc(l.title)}</h3><div class="lesson-meta"><span>${l.duration} мин</span><span>+${l.xp} XP при 100%</span><span class="subtopic-pill">${l.subtopicCount} подтем</span></div></div><div class="lesson-xp">${open?icon('arrow'):''}</div></div>`}).join('')}</div></section>`}).join('')}`}catch(e){return errorBox(e)}}
+export function bindLearn(root,ctx){root.querySelectorAll('[data-path]').forEach(b=>b.onclick=()=>{state.currentPath=b.dataset.path;state.currentLesson=null;save();ctx.refresh()});root.querySelectorAll('[data-lesson]').forEach(x=>x.onclick=()=>ctx.openLesson(x.dataset.lesson))}
+export async function solve(){try{const list=await casesList();return `<div class="eyebrow">SOLVE · практическое право</div><h1 class="display">Решайте как юрист</h1><p class="page-copy">SOLVE проверяет применение права отдельно от Mastery урока. Ошибки остаются в истории конкретного run.</p><div class="case-list">${list.map((c,i)=>{const ok=usableStatus(c.status);return `<div class="card case-row ${ok?'':'case-locked'}" ${ok?`data-case="${c.id}"`:''}><div class="tag">${String(i+1).padStart(2,'0')} · ${esc(c.area)} · ${ok?'Проверено':c.status==='OUTDATED'?'Устарело':'На проверке'}</div><h3>${esc(c.title)}</h3><p>${ok?esc(c.prompt):'Материал проходит юридическую проверку и пока не доступен как официальный кейс.'}</p>${!ok?`<div class="case-lock-note">${icon('lock')} ${c.status}</div>`:''}</div>`}).join('')}</div>`}catch(e){return errorBox(e)}}
 export function bindSolve(root,ctx){root.querySelectorAll('[data-case]').forEach(x=>x.onclick=()=>ctx.openCase(x.dataset.case))}
-
-export function searchPage(){
-  return `<div class="eyebrow">Поиск по проверенной базе</div><h1 class="display">Ищите своими словами</h1><p class="page-copy">Например: «как вывести деньги из фирмы», «что такое IS», «не возвращают залог», «сменить студента на предпринимателя».</p><div class="search-box"><input id="searchInput" placeholder="Введите вопрос или тему"></div><div id="searchResults" class="result-list" style="margin-top:12px"></div><div class="card legal-card" style="margin-top:16px"><h3>AI пока не имитируется</h3><p>Сейчас поиск использует названия, синонимы, сценарии и юридические термины базы. Генеративный юридический AI будет подключен только вместе с надежным retrieval и источниками.</p></div>`;
-}
-
-export function bindSearch(root,ctx){
-  const q=root.querySelector('#searchInput');
-  const out=root.querySelector('#searchResults');
-  let timer;
-  q.oninput=()=>{
-    clearTimeout(timer);
-    timer=setTimeout(async()=>{
-      const rows=await search(q.value);
-      out.innerHTML=rows.map(x=>`<div class="card result-row" ${x.type==='lesson'?`data-lesson="${x.item.id}"`:`data-case="${x.item.id}"`}><div class="tag">${x.type==='lesson'?'Урок':'SOLVE'} · ${x.item.path||x.item.area}</div><h3>${x.item.title}</h3><p>${x.item.summary||x.item.prompt||''}</p></div>`).join('')||'<div class="small">Ничего не найдено. Попробуйте описать ситуацию другими словами.</div>';
-      out.querySelectorAll('[data-lesson]').forEach(x=>x.onclick=()=>ctx.openLesson(x.dataset.lesson));
-      out.querySelectorAll('[data-case]').forEach(x=>x.onclick=()=>ctx.openCase(x.dataset.case));
-    },180);
-  };
-}
-
-export async function profile(){
-  const app=idx();
-  return `<div class="eyebrow">Ваш профиль</div><h1 class="display">${state.name||'Petr'}</h1><div class="card profile-grid"><div class="stat"><b>${state.xp}</b><span>XP</span></div><div class="stat"><b>${state.streak}</b><span>серия дней</span></div><div class="stat"><b>${state.completed.length}</b><span>уроков</span></div></div><section class="section">${section('01','Карта знаний','Mastery')}<div class="knowledge-grid">${app.paths.map(p=>`<div class="card knowledge-card"><h3>${p.title}</h3><div class="progress"><i style="width:${pathMastery(p.lessonIds)}%"></i></div><div class="small" style="margin-top:6px">${pathMastery(p.lessonIds)}%</div></div>`).join('')}</div></section><section class="section">${section('02','Настройки','iPhone')}<div class="card legal-card"><h3>Тема</h3><p><button class="secondary" data-theme="light">Светлая</button> <button class="secondary" data-theme="dark">Темная</button></p></div><div class="card legal-card"><h3>Размер текста</h3><p><button class="secondary" data-font="-1">A</button> <button class="secondary" data-font="1">A+</button></p></div><div class="card legal-card"><h3>Масштаб экрана</h3><p>Pinch zoom и zoom по двойному касанию отключены. Размер текста меняется только через настройку выше.</p></div></section>`;
-}
-
-export function bindProfile(root){
-  root.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>setTheme(b.dataset.theme));
-  root.querySelectorAll('[data-font]').forEach(b=>b.onclick=()=>setFont(Number(b.dataset.font)));
-}
+export function searchPage(){return `<div class="eyebrow">Поиск по проверенной базе</div><h1 class="display">Ищите своими словами</h1><p class="page-copy">Например: «как вывести деньги из фирмы», «что такое IS», «не возвращают залог», «после студента открыть ИП».</p><div class="search-box"><input id="searchInput" placeholder="Введите вопрос или тему"></div><div id="searchResults" class="result-list" style="margin-top:12px"></div><div class="card legal-card" style="margin-top:16px"><h3>AI пока не имитируется</h3><p>Поиск использует title, keywords, synonyms, userQuestions, scenarios и legalTerms. Генеративный юридический AI будет подключен только вместе с надежным retrieval и source verification.</p></div>`}
+export function bindSearch(root,ctx){const q=root.querySelector('#searchInput'),out=root.querySelector('#searchResults');let timer;q.oninput=()=>{clearTimeout(timer);timer=setTimeout(async()=>{const rows=await search(q.value);out.innerHTML=rows.map(x=>{const ok=usableStatus(x.item.status);return `<div class="card result-row ${ok?'':'case-locked'}" ${ok?(x.type==='lesson'?`data-lesson="${x.item.id}"`:`data-case="${x.item.id}"`):''}><div class="tag">${x.type==='lesson'?'Урок':'SOLVE'} · ${esc(x.item.path||x.item.area)} · ${ok?'Проверено':'На проверке'}</div><h3>${esc(x.item.title)}</h3><p>${ok?esc(x.item.summary||x.item.prompt||''):'Материал пока не выдается как проверенный.'}</p></div>`}).join('')||'<div class="small">Ничего не найдено. Попробуйте описать ситуацию другими словами.</div>';out.querySelectorAll('[data-lesson]').forEach(x=>x.onclick=()=>ctx.openLesson(x.dataset.lesson));out.querySelectorAll('[data-case]').forEach(x=>x.onclick=()=>ctx.openCase(x.dataset.case))},180)}}
+export async function profile(){const app=idx(),saved=await relatedLessons(state.saved||[]);const title=state.name?esc(state.name):'Ваш профиль';return `<div class="eyebrow">Ваш профиль</div><h1 class="display">${title}</h1><div class="card profile-grid"><div class="stat"><b>${state.xp}</b><span>XP</span></div><div class="stat"><b>${state.streak}</b><span>серия дней</span></div><div class="stat"><b>${state.completed.length}</b><span>в истории</span></div></div><section class="section">${section('01','Карта знаний','Mastery')}<div class="knowledge-grid">${app.paths.map(p=>`<div class="card knowledge-card"><h3>${p.title}</h3><div class="progress"><i style="width:${pathMastery(p.lessonIds)}%"></i></div><div class="small" style="margin-top:6px">${pathMastery(p.lessonIds)}%</div></div>`).join('')}</div></section><section class="section">${section('02','Сохраненное',`${saved.length}`)}${saved.length?`<div class="saved-list">${saved.map(l=>`<button class="card saved-row" data-saved-lesson="${l.id}"><div><div class="tag">${esc(l.path)}</div><h3>${esc(l.title)}</h3><div class="small">Mastery ${mastery(l.id).score}%</div></div>${icon('arrow')}</button>`).join('')}</div>`:`<div class="card legal-card empty-state"><h3>Пока ничего не сохранено</h3><p>Нажмите bookmark в уроке, и материал появится здесь.</p></div>`}</section><section class="section">${section('03','Настройки','iPhone')}<div class="card legal-card"><h3>Тема</h3><p><button class="secondary" data-theme="light">Светлая</button> <button class="secondary" data-theme="dark">Темная</button></p></div><div class="card legal-card"><h3>Размер текста</h3><p><button class="secondary" data-font="-1">A</button> <button class="secondary" data-font="1">A+</button></p></div><div class="card legal-card"><h3>Масштаб экрана</h3><p>Pinch zoom и zoom по двойному касанию отключены. Вертикальный scroll и Search input остаются доступными.</p></div></section>`}
+export function bindProfile(root,ctx){root.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>setTheme(b.dataset.theme));root.querySelectorAll('[data-font]').forEach(b=>b.onclick=()=>setFont(Number(b.dataset.font)));root.querySelectorAll('[data-saved-lesson]').forEach(b=>b.onclick=()=>ctx.openLesson(b.dataset.savedLesson))}
