@@ -102,8 +102,8 @@ for(const item of search.items){
 
 const sw=fs.readFileSync(path.join(root,'service-worker.js'),'utf8');
 ok(sw.includes("url.pathname.includes('/legal-app/content/')"),'Service worker does not route legal content separately');
-ok(sw.includes('networkFirst(req,LEGAL)'),'Legal content is not network-first');
-ok(sw.includes("fetch(req,{cache:'no-store'})"),'Network-first fetch does not bypass HTTP cache');
+ok(/networkFirst\([^,]+,\s*LEGAL\)/.test(sw),'Legal content is not network-first');
+ok(/fetch\([^,]+,\s*\{cache:'no-store'\}\)/.test(sw),'Network-first fetch does not bypass HTTP cache');
 for(const id of lessonIds)ok(sw.includes(`'${id}'`),`SW missing lesson ${id}`);
 for(const id of caseIds)ok(sw.includes(`'${id}'`),`SW missing case ${id}`);
 
