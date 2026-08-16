@@ -1,19 +1,2 @@
-import fs from 'node:fs';
-import path from 'node:path';
-
-const root=path.resolve('legal-app');
-const sw=fs.readFileSync(path.join(root,'service-worker.js'),'utf8');
-const fixed=[...sw.matchAll(/['"](\.\/[^'"`$]+)['"]/g)].map(m=>m[1]);
-const urls=[...new Set(fixed)].filter(x=>x!=='./');
-const missing=[];
-for(const url of urls){
-  const clean=url.replace(/^\.\//,'').split('?')[0];
-  if(!clean||clean.includes('*'))continue;
-  if(!fs.existsSync(path.join(root,clean)))missing.push(`${url} -> ${clean}`);
-}
-console.log(JSON.stringify({checked:urls.length,missing},null,2));
-if(missing.length){
-  for(const x of missing)console.error(`::error file=legal-app/service-worker.js::Precache asset missing: ${x}`);
-  process.exit(1);
-}
-console.log('LexiFrance PWA asset QA PASSED');
+import fs from'node:fs';
+const r='legal-app',idx=JSON.parse(fs.readFileSync(`${r}/content/app-index.json`,'utf8')),fail=[];const bad=m=>{fail.push(m);console.error('FAIL',m)};const must=['index.html','app.css','quiz.css','solve2.css','app.js','manifest.webmanifest','icon.svg','js/data.js','js/state.js','js/ui.js','js/icons.js','js/pages.js','js/lesson.js','js/case.js','js/legal-enhance.js','js/search-core.js','content/app-index.json','content/updates.json','content/search/core.json','content/search/qa.json',idx.caseIndexFile,...idx.caseBundleFiles];for(const p of must)if(!fs.existsSync(`${r}/${p}`))bad(`missing ${p}`);for(const id of idx.paths.flatMap(p=>p.lessonIds)){for(const p of[`content/lessons/${id}.json`,`content/quizzes/${id}.json`])if(!fs.existsSync(`${r}/${p}`))bad(`missing ${p}`)}const sw=fs.readFileSync(`${r}/service-worker.js`,'utf8');for(const p of['./index.html','./app.css?v=10','./quiz.css?v=10','./solve2.css?v=10','./app.js?v=10','./manifest.webmanifest'])if(!sw.includes(`'${p}'`))bad(`shell missing ${p}`);for(const old of['styles/base.css','styles/components.css','styles/pages.css','styles/content.css'])if(sw.includes(old))bad(`stale precache ${old}`);if(!sw.includes('Promise.allSettled'))bad('legal precache not best effort');if(fail.length){console.error(`ASSET QA FAILED ${fail.length}`);process.exit(1)}console.log('ASSET QA PASSED');

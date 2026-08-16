@@ -1,22 +1,12 @@
-import fs from 'node:fs';
-import path from 'node:path';
-const root=path.resolve('legal-app');
-const failures=[];
-const fail=m=>failures.push(m);
-const lessonDir=path.join(root,'content/lessons');
-for(const name of fs.readdirSync(lessonDir).filter(x=>x.endsWith('.json'))){
-  const data=JSON.parse(fs.readFileSync(path.join(lessonDir,name),'utf8'));
-  if(Object.prototype.hasOwnProperty.call(data,'quiz'))fail(`${name}: legacy embedded quiz field remains`);
-}
-const state=fs.readFileSync(path.join(root,'js/state.js'),'utf8');
-const caseJs=fs.readFileSync(path.join(root,'js/case.js'),'utf8');
-const lessonJs=fs.readFileSync(path.join(root,'js/lesson.js'),'utf8');
-if(/75\s*\)?\s*;/.test(state)&&/mastery/i.test(state))fail('Possible legacy 75% case-to-mastery logic remains');
-if(/caseResult\s*\(/.test(state))fail('Legacy caseResult API remains');
-if(/quizResult\s*\(/.test(state))fail('Legacy quizResult API remains');
-if(/\b(?:l|lesson)\.quiz\b/.test(lessonJs))fail('lesson runtime still references embedded lesson.quiz');
-if(!/quizPack/.test(lessonJs))fail('lesson runtime does not use separate quiz pack');
-if(/mastery\s*\(/.test(caseJs)&&!/lessonMastery/.test(caseJs))fail('Case runtime may directly mutate lesson mastery');
-console.log(JSON.stringify({legacyFailures:failures},null,2));
-if(failures.length){for(const x of failures)console.error(`::error file=legal-app/qa-legacy.mjs::${x}`);process.exit(1)}
-console.log('LexiFrance legacy cleanup QA PASSED');
+import fs from'node:fs';
+const r='legal-app',fail=[];const bad=m=>{fail.push(m);console.error('FAIL',m)};
+for(const p of['content/cases/index-1.json',...Array.from({length:11},(_,i)=>`content/cases/case${i+1}.json`)])if(fs.existsSync(`${r}/${p}`))bad(`legacy file ${p}`);
+const caseJs=fs.readFileSync(`${r}/js/case.js`,'utf8'),state=fs.readFileSync(`${r}/js/state.js`,'utf8'),pages=fs.readFileSync(`${r}/js/pages.js`,'utf8');
+for(const m of['beginCaseRun','recordCaseAnswer','finishCaseRun','c.mode===','data-step-option','finishSingle'])if(caseJs.includes(m))bad(`legacy Case v1 marker ${m}`);
+if(state.includes('caseHistory:{'))bad('active Case v1 history in default state');
+const uses=[...state.matchAll(/state\.caseHistory/g)].length;if(uses>2)bad(`unexpected active caseHistory references: ${uses}`);
+if(!state.includes('legacyCaseHistory'))bad('legacy case history migration missing');
+if(pages.includes("['Applied','Применяете'")||pages.includes('Mastery Applied'))bad('legacy Applied mastery wording');
+if(pages.includes('>=37')||pages.includes('<37'))bad('37 unlock remains');
+for(const f of fs.readdirSync(`${r}/content/lessons`).filter(x=>x.endsWith('.json'))){const l=JSON.parse(fs.readFileSync(`${r}/content/lessons/${f}`,'utf8'));if(Array.isArray(l.quiz))bad(`${f}: embedded legacy quiz`)}
+if(fail.length){console.error(`LEGACY QA FAILED ${fail.length}`);process.exit(1)}console.log('LEGACY QA PASSED');

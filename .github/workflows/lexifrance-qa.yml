@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - lexifrance-v5-quality
+      - lexifrance-v5-solve2
     paths:
       - 'legal-app/**'
       - '.github/workflows/lexifrance-qa.yml'
@@ -15,29 +15,35 @@ on:
 jobs:
   integrity:
     runs-on: ubuntu-latest
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check JS syntax
+      - name: Check JavaScript syntax
         run: |
           node --check legal-app/app.js
           for f in legal-app/js/*.js; do node --check "$f"; done
-          node --check legal-app/qa.mjs
-          node --check legal-app/qa-assets.mjs
-          node --check legal-app/qa-legacy.mjs
-          node --check legal-app/e2e.mjs
-          node --check legal-app/webkit-smoke.mjs
-      - name: Validate content, quiz, cases, updates and PWA
-        run: |
-          node legal-app/qa.mjs
-          node legal-app/qa-assets.mjs
-          node legal-app/qa-legacy.mjs
+          for f in legal-app/qa*.mjs legal-app/e2e.mjs legal-app/webkit-smoke.mjs; do node --check "$f"; done
+      - name: Core integrity
+        run: node legal-app/qa.mjs
+      - name: Quiz editorial integrity
+        run: node legal-app/qa-quiz.mjs
+      - name: SOLVE 2.0 schema and progression
+        run: node legal-app/qa-cases.mjs
+      - name: Search Top-1 and Top-3
+        run: node legal-app/qa-search.mjs
+      - name: PWA assets
+        run: node legal-app/qa-assets.mjs
+      - name: Service Worker failure fallback
+        run: node legal-app/qa-sw.mjs
+      - name: Legacy code removal
+        run: node legal-app/qa-legacy.mjs
 
   browser:
     needs: integrity
-    timeout-minutes: 3
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,12 +58,12 @@ jobs:
         run: |
           python3 -m http.server 4173 > /tmp/lexifrance-http.log 2>&1 &
           sleep 2
-      - name: Mobile, Mastery, SOLVE, Search and offline E2E
-        run: timeout 90s node legal-app/e2e.mjs
+      - name: V5.1 mobile, Quiz, SOLVE, orientation, migration and offline E2E
+        run: timeout 150s node legal-app/e2e.mjs
 
   webkit:
     needs: integrity
-    timeout-minutes: 3
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,5 +78,5 @@ jobs:
         run: |
           python3 -m http.server 4173 > /tmp/lexifrance-http-webkit.log 2>&1 &
           sleep 2
-      - name: iPhone WebKit smoke
-        run: timeout 60s node legal-app/webkit-smoke.mjs
+      - name: iPhone portrait-only WebKit QA
+        run: timeout 90s node legal-app/webkit-smoke.mjs

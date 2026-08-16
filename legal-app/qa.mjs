@@ -1,122 +1,30 @@
-import fs from 'node:fs';
-import path from 'node:path';
-
-const root=path.resolve('legal-app');
-const read=(p)=>JSON.parse(fs.readFileSync(path.join(root,p),'utf8'));
-const exists=(p)=>fs.existsSync(path.join(root,p));
-const errors=[];
-const ok=(cond,msg)=>{if(!cond)errors.push(msg)};
-
-const index=read('content/app-index.json');
-const lessonIds=index.paths.flatMap(p=>p.lessonIds);
-const expectedCounts={Corporate:5,Tax:4,Immigration:6,'Real Estate':5};
-ok(lessonIds.length===20,`Expected 20 lessons, got ${lessonIds.length}`);
-ok(new Set(lessonIds).size===lessonIds.length,'Lesson IDs are not unique');
-for(const p of index.paths)ok(p.lessonIds.length===expectedCounts[p.id],`${p.id}: expected ${expectedCounts[p.id]} lessons, got ${p.lessonIds.length}`);
-
-const allQuestionIds=new Set();
-let questionCount=0;
-let microCount=0;
-for(const id of lessonIds){
-  ok(exists(`content/lessons/${id}.json`),`${id}: lesson file missing`);
-  ok(exists(`content/quizzes/${id}.json`),`${id}: quiz file missing`);
-  if(!exists(`content/lessons/${id}.json`)||!exists(`content/quizzes/${id}.json`))continue;
-  const lesson=read(`content/lessons/${id}.json`);
-  const quiz=read(`content/quizzes/${id}.json`);
-  ok(lesson.id===id,`${id}: lesson.id mismatch`);
-  ok(quiz.lessonId===id,`${id}: quiz.lessonId mismatch`);
-  ok(['CURRENT','UPDATED','PENDING_REVIEW','OUTDATED','ARCHIVED'].includes(lesson.status),`${id}: invalid status ${lesson.status}`);
-  ok(typeof lesson.contentVersion==='string'&&lesson.contentVersion.length>0,`${id}: missing contentVersion`);
-  ok(typeof lesson.verifiedAt==='string'&&lesson.verifiedAt.length>=10,`${id}: missing verifiedAt`);
-  ok(Array.isArray(lesson.subtopics)&&lesson.subtopics.length>=1,`${id}: no subtopics`);
-  const targets=new Set((lesson.subtopics||[]).map((_,i)=>`${id}-subtopic-${i+1}`));
-  ok(Array.isArray(quiz.questions)&&quiz.questions.length===10,`${id}: expected exactly 10 questions`);
-  const qtexts=new Set();
-  (quiz.questions||[]).forEach((q,i)=>{
-    questionCount++;
-    const expectedId=`${id}-q${String(i+1).padStart(2,'0')}`;
-    ok(q.id===expectedId,`${id}: question ${i+1} id must be ${expectedId}, got ${q.id}`);
-    ok(!allQuestionIds.has(q.id),`${id}: duplicate global question id ${q.id}`);
-    allQuestionIds.add(q.id);
-    ok(q.difficulty===i+1,`${q.id}: difficulty must be ${i+1}, got ${q.difficulty}`);
-    ok(typeof q.question==='string'&&q.question.trim().length>=18,`${q.id}: question too short`);
-    ok(!qtexts.has(q.question.trim().toLowerCase()),`${q.id}: duplicate question text in lesson`);
-    qtexts.add(q.question.trim().toLowerCase());
-    ok(Array.isArray(q.answers)&&q.answers.length>=3,`${q.id}: need at least 3 answer options`);
-    ok(Number.isInteger(q.correct)&&q.correct>=0&&q.correct<(q.answers||[]).length,`${q.id}: invalid correct index`);
-    ok(typeof q.explanation==='string'&&q.explanation.trim().length>=20,`${q.id}: explanation too short`);
-    ok(typeof q.wrongExplanation==='string'&&q.wrongExplanation.trim().length>=20,`${q.id}: wrongExplanation too short`);
-    ok(targets.has(q.reviewTarget),`${q.id}: reviewTarget ${q.reviewTarget} does not exist`);
-  });
-  const micros=quiz.microDecisions||[];
-  microCount+=micros.length;
-  ok(micros.length>=2&&micros.length<=3,`${id}: expected 2-3 micro decisions, got ${micros.length}`);
-  const microIds=new Set();
-  micros.forEach(m=>{
-    ok(typeof m.id==='string'&&!microIds.has(m.id),`${id}: duplicate/invalid micro id ${m.id}`);microIds.add(m.id);
-    ok(Number.isInteger(m.afterSubtopic)&&m.afterSubtopic>=1&&m.afterSubtopic<=lesson.subtopics.length,`${m.id}: invalid afterSubtopic`);
-    ok(Array.isArray(m.answers)&&m.answers.length>=2,`${m.id}: not enough answers`);
-    ok(Number.isInteger(m.correct)&&m.correct>=0&&m.correct<m.answers.length,`${m.id}: invalid correct`);
-    ok(typeof m.explanation==='string'&&m.explanation.trim().length>=15,`${m.id}: explanation too short`);
-  });
-}
-
-ok(questionCount===200,`Expected 200 total questions, got ${questionCount}`);
-
-const caseIndex=read('content/cases/index-1.json');
-ok(caseIndex.cases.length===11,`Expected 11 cases, got ${caseIndex.cases.length}`);
-const caseIds=new Set(caseIndex.cases.map(c=>c.id));
-ok(caseIds.size===11,'Case IDs are not unique');
-for(const item of caseIndex.cases){
-  const p=`content/cases/${item.id}.json`;
-  ok(exists(p),`${item.id}: case file missing`);if(!exists(p))continue;
-  const c=read(p);
-  ok(c.id===item.id,`${item.id}: case id mismatch`);
-  ok(c.status===item.status,`${item.id}: index/file status mismatch`);
-  ok(['CURRENT','UPDATED','PENDING_REVIEW','OUTDATED','ARCHIVED'].includes(c.status),`${item.id}: invalid status`);
-  ok(typeof c.contentVersion==='string'&&c.contentVersion.length>0,`${item.id}: missing contentVersion`);
-  ok(typeof c.verifiedAt==='string'&&c.verifiedAt.length>=10,`${item.id}: missing verifiedAt`);
-  ok(typeof c.source==='string'&&/^https:\/\//.test(c.source),`${item.id}: missing official source URL`);
-  for(const l of c.linkedLessons||[])ok(lessonIds.includes(l),`${item.id}: linked lesson ${l} does not exist`);
-  if(c.mode==='multi')ok(Array.isArray(c.steps)&&c.steps.length>=3,`${item.id}: multi case needs >=3 steps`);
-  else ok(Array.isArray(c.options)&&c.options.length>=3,`${item.id}: single case needs >=3 options`);
-}
-
-const updates=read('content/updates.json');
-const legacyPattern=/^(?:c\d+|t\d+|i\d+|r\d+)$/;
-for(const u of updates.updates||[]){
-  ok(typeof u.contentVersion==='string'&&u.contentVersion.length>0,`${u.id}: update missing contentVersion`);
-  ok(typeof u.lastVerifiedDate==='string'&&u.lastVerifiedDate.length>=10,`${u.id}: update missing lastVerifiedDate`);
-  ok(['CURRENT','UPDATED','PENDING_REVIEW','OUTDATED','ARCHIVED'].includes(u.status),`${u.id}: invalid update status`);
-  for(const id of u.affectedLessons||[]){ok(lessonIds.includes(id),`${u.id}: unknown affected lesson ${id}`);ok(!legacyPattern.test(id),`${u.id}: legacy lesson id remains ${id}`)}
-  for(const id of u.affectedCases||[])ok(caseIds.has(id),`${u.id}: unknown affected case ${id}`);
-}
-
-const search=read('content/search/core.json');
-const searchIds=new Set(search.items.map(x=>x.id));
-for(const id of lessonIds)ok(searchIds.has(id),`${id}: missing from search index`);
-for(const item of search.items){
-  ok(lessonIds.includes(item.id),`${item.id}: unknown search lesson id`);
-  for(const field of ['keywords','synonyms','userQuestions','scenarios','legalTerms'])ok(Array.isArray(item[field])&&item[field].length>0,`${item.id}: search field ${field} empty`);
-}
-
-const sw=fs.readFileSync(path.join(root,'service-worker.js'),'utf8');
-ok(sw.includes("url.pathname.includes('/legal-app/content/')"),'Service worker does not route legal content separately');
-ok(/networkFirst\([^,]+,\s*LEGAL\)/.test(sw),'Legal content is not network-first');
-ok(/fetch\([^,]+,\s*\{cache:'no-store'\}\)/.test(sw),'Network-first fetch does not bypass HTTP cache');
-for(const id of lessonIds)ok(sw.includes(`'${id}'`),`SW missing lesson ${id}`);
-for(const id of caseIds)ok(sw.includes(`'${id}'`),`SW missing case ${id}`);
-
-const state=fs.readFileSync(path.join(root,'js/state.js'),'utf8');
-ok(!state.includes('score=Math.min(100,Math.max(m.score||0,75))'),'Legacy case -> 75% mastery logic remains');
-ok(!state.includes("name:'Petr'"),'Hardcoded Petr remains in state');
-ok(/opened\?10:0/.test(state)&&/solved\*9/.test(state),'Exact 10 + 9*solved mastery formula missing');
-
-const report={version:index.version,contentVersion:index.contentVersion,lessons:lessonIds.length,questions:questionCount,microDecisions:microCount,cases:caseIds.size,updates:(updates.updates||[]).length,searchItems:search.items.length,errors};
-console.log(JSON.stringify(report,null,2));
-if(errors.length){
-  for(const e of errors)console.error(`::error file=legal-app/qa.mjs::${e}`);
-  console.error(`\nQA FAILED with ${errors.length} issue(s)`);
-  process.exit(1);
-}
-console.log('\nLexiFrance integrity QA PASSED');
+import fs from'node:fs';
+const r='legal-app',fail=[];const bad=m=>{fail.push(m);console.error('FAIL',m)},ok=m=>console.log('PASS',m),read=p=>fs.readFileSync(`${r}/${p}`,'utf8'),json=p=>JSON.parse(read(p));
+const idx=json('content/app-index.json');
+if(idx.schemaVersion!=='5.1.0'||idx.contentRelease!=='2026.08.16.2'||idx.runtimeVersion!=='10')bad('app-index versioning');else ok('app-index versioning');
+if('version'in idx||'contentVersion'in idx)bad('ambiguous app-index version keys');
+const lessonIds=idx.paths.flatMap(p=>p.lessonIds);
+if(lessonIds.length!==20||new Set(lessonIds).size!==20)bad('20 unique lessons');else ok('20 lessons');
+for(const id of lessonIds){const l=json(`content/lessons/${id}.json`);if(!['CURRENT','UPDATED','PENDING_REVIEW','OUTDATED'].includes(l.status))bad(`${id}: legal status`);if(!l.verifiedAt||!l.sources?.length)bad(`${id}: verification metadata`);if(!l.subtopics?.length)bad(`${id}: full lesson subtopics`)}
+const updates=json('content/updates.json');if(updates.schemaVersion!=='5.1.0'||updates.contentRelease!==idx.contentRelease)bad('updates versioning');else ok('updates versioning');
+const search=json('content/search/core.json');if(search.schemaVersion!=='5.1.0'||search.contentRelease!==idx.contentRelease||search.items?.length!==20)bad('search versioning/index');else ok('search versioning/index');
+const state=read('js/state.js'),pages=read('js/pages.js'),lesson=read('js/lesson.js'),app=read('app.js'),sw=read('service-worker.js'),data=read('js/data.js'),manifest=json('manifest.webmanifest');
+if(!state.includes('REVIEW_INTERVALS=[7,30,90]'))bad('spaced repetition 7/30/90');else ok('spaced repetition intervals');
+if(state.includes("['Applied','Применяете'"))bad('Applied mastery label remains');
+if(!state.includes("['Confident','Уверенное знание'"))bad('Confident mastery label');
+if(!pages.includes('mastery(order[i-1]).score>=64'))bad('lesson unlock is not 64');else ok('unlock at 64%');
+if(pages.includes('score>=37')||pages.includes('>=37'))bad('legacy 37 unlock remains');
+if(!pages.includes('Knowledge')||!pages.includes('Application'))bad('knowledge/application split');else ok('Knowledge/Application split');
+if(!lesson.includes('if(!unavailable)openLessonProgress'))bad('status before mastery open');else ok('status checked before opening mastery');
+if(!lesson.includes('opt.feedback'))bad('option-specific quiz feedback');
+if(!state.includes('recordQuizReview')||!state.includes('reviews:[]'))bad('quiz review history');else ok('review history');
+if(!state.includes('migrateSolveV2')||!state.includes('legacyCaseHistory'))bad('case history migration');else ok('case history migration');
+if(!state.includes('saveCaseNotebook')||!state.includes('submitCaseStage'))bad('Case v2 persistence/scoring');
+if(manifest.orientation!=='portrait-primary')bad('manifest portrait-primary');else ok('manifest portrait-primary');
+if(!app.includes('portraitGuard')||!app.includes("lock('portrait-primary')"))bad('app portrait guard/lock');else ok('portrait guard runtime');
+if(!sw.includes("const VERSION='v10'"))bad('service worker v10');
+if(!sw.includes('Promise.allSettled')||!sw.includes('bestEffortLegal'))bad('best effort legal precache');
+if(!sw.includes('if(r&&r.ok)')||!sw.includes('if(hit)return hit'))bad('network-first invalid response fallback');else ok('network-first non-OK fallback');
+if(!data.includes('normalizeMeta')||!data.includes('delete d.contentVersion'))bad('runtime metadata normalization');
+if(app.includes('Petr')||pages.includes('Petr'))bad('hardcoded Petr');
+if(fail.length){console.error(`INTEGRITY FAILED ${fail.length}`);process.exit(1)}console.log('INTEGRITY PASSED');
