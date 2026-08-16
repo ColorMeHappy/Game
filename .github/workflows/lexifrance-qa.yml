@@ -34,7 +34,7 @@ jobs:
 
   browser:
     needs: integrity
-    timeout-minutes: 5
+    timeout-minutes: 3
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,4 +50,4 @@ jobs:
           python3 -m http.server 4173 > /tmp/lexifrance-http.log 2>&1 &
           sleep 2
       - name: Mobile, Mastery, SOLVE, Search and offline E2E
-        run: node legal-app/e2e.mjs
+        run: timeout 90s node legal-app/e2e.mjs
