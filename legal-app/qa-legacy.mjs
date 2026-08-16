@@ -4,7 +4,7 @@ for(const p of['content/cases/index-1.json',...Array.from({length:11},(_,i)=>`co
 const caseJs=fs.readFileSync(`${r}/js/case.js`,'utf8'),state=fs.readFileSync(`${r}/js/state.js`,'utf8'),pages=fs.readFileSync(`${r}/js/pages.js`,'utf8');
 for(const m of['beginCaseRun','recordCaseAnswer','finishCaseRun','c.mode===','data-step-option','finishSingle'])if(caseJs.includes(m))bad(`legacy Case v1 marker ${m}`,'legal-app/js/case.js');
 if(state.includes('caseHistory:{'))bad('active Case v1 history in default state','legal-app/js/state.js');
-const uses=[...state.matchAll(/state\.caseHistory/g)].length;if(uses>2)bad(`unexpected active caseHistory references: ${uses}`,'legal-app/js/state.js');
+const migrationMatch=state.match(/export function migrateSolveV2\(\)\{[\s\S]*?\}\nfunction studyDay/);if(!migrationMatch)bad('migrateSolveV2 migration missing','legal-app/js/state.js');const stateWithoutMigration=migrationMatch?state.replace(migrationMatch[0],'function studyDay'):state;if(stateWithoutMigration.includes('state.caseHistory'))bad('Case v1 state used outside migration','legal-app/js/state.js');
 if(!state.includes('legacyCaseHistory'))bad('legacy case history migration missing','legal-app/js/state.js');
 if(pages.includes("['Applied','Применяете'")||pages.includes('Mastery Applied'))bad('legacy Applied mastery wording','legal-app/js/pages.js');
 if(pages.includes('>=37')||pages.includes('<37'))bad('37 unlock remains','legal-app/js/pages.js');
