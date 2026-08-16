@@ -1,0 +1,1 @@
+process.on('uncaughtException',e=>{console.error(`::error file=legal-app/e2e.mjs::${String(e?.stack||e)}`);process.exit(1)});process.on('unhandledRejection',e=>{console.error(`::error file=legal-app/e2e.mjs::${String(e?.stack||e)}`);process.exit(1)});await import('./e2e.mjs');
