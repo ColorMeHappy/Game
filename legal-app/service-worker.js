@@ -1,8 +1,8 @@
-const VERSION='v10';
+const VERSION='v11';
 const STATIC=`lexifrance-static-${VERSION}`;
 const RUNTIME=`lexifrance-runtime-${VERSION}`;
 const LEGAL=`lexifrance-legal-${VERSION}`;
-const SHELL=['./','./index.html','./app.css?v=10','./quiz.css?v=10','./solve2.css?v=10','./app.js?v=10','./manifest.webmanifest','./js/data.js','./js/state.js','./js/search-core.js','./js/ui.js','./js/icons.js','./js/pages.js?v=10','./js/lesson.js?v=10','./js/case.js?v=10','./js/legal-enhance.js?v=10'];
+const SHELL=['./','./index.html','./app.css?v=11','./quiz.css?v=11','./solve2.css?v=11','./app.js?v=11','./manifest.webmanifest','./js/data.js','./js/state.js','./js/cloud.js?v=11','./js/search-core.js','./js/ui.js','./js/icons.js','./js/pages.js?v=10','./js/lesson.js?v=10','./js/case.js?v=10','./js/legal-enhance.js?v=10'];
 const STATIC_ASSETS=['./icon.svg'];
 const LESSONS=['corp-01','corp-02','corp-03','corp-04','corp-05','tax-01','tax-02','tax-03','tax-04','imm-01','imm-02','imm-03','imm-04','imm-05','imm-06','re-01','re-02','re-03','re-04','re-05'];
 const CASE_BUNDLES=['corporate-v2','tax-v2','immigration-v2','real-estate-v2'];
