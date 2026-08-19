@@ -1,0 +1,21 @@
+import fs from'node:fs';
+const cloud=fs.readFileSync('legal-app/js/cloud.js','utf8');
+const app=fs.readFileSync('legal-app/app.js','utf8');
+const sw=fs.readFileSync('legal-app/service-worker.js','utf8');
+const index=fs.readFileSync('legal-app/index.html','utf8');
+const failures=[];
+const check=(v,m)=>{if(v)console.log(`PASS: ${m}`);else{failures.push(m);console.error(`FAIL: ${m}`)}};
+check(cloud.includes('sb_publishable_'),'frontend uses a publishable Supabase client key');
+check(!/service[_-]?role[^\n]{0,60}(eyJ|sb_)/i.test(cloud),'frontend contains no service-role credential');
+for(const key of ['eventId','entityType','entityId','operation','payload','createdAt','syncStatus'])check(cloud.includes(key),`sync queue contains ${key}`);
+check(cloud.includes("data.status==='conflict'")&&cloud.includes('mergeProgress'),'CAS conflicts are handled explicitly');
+check(cloud.includes("data.status==='duplicate'")&&cloud.includes('sync_receipts')===false,'client handles idempotent duplicate receipts without privileged DB knowledge');
+check(cloud.includes('signInAnonymously'),'soft anonymous auth path exists');
+check(cloud.includes('updateUser({email:value}'),'anonymous/email upgrade path exists');
+check(cloud.includes("window.addEventListener('offline'")&&cloud.includes("window.addEventListener('online'"),'offline reconnect lifecycle is implemented');
+check(cloud.includes('replaceLiveState')&&cloud.includes('Object.assign(state'),'cloud hydration reuses the existing state object');
+check(app.includes('await render();initCloud'),'cloud initializes only after local app render');
+check(sw.includes("VERSION='v11'")&&sw.includes("'./js/cloud.js?v=11'"),'PWA v11 caches the local cloud adapter');
+check(index.includes('./app.js?v=11'),'HTML loads runtime v11');
+if(failures.length){console.error(`\n${failures.length} Phase 1 cloud QA failure(s)`);process.exit(1)}
+console.log('\nPhase 1 cloud integrity passed');
