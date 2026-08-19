@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - lexifrance-v5-solve2
+      - lexifrance-next-phase1
     paths:
       - 'legal-app/**'
       - '.github/workflows/lexifrance-qa.yml'
@@ -30,6 +31,8 @@ jobs:
         run: node legal-app/qa-imports.mjs
       - name: Core integrity
         run: node legal-app/qa.mjs
+      - name: Phase 1 cloud integrity
+        run: node legal-app/qa-cloud.mjs
       - name: Quiz editorial integrity
         run: node legal-app/qa-quiz.mjs
       - name: SOLVE 2.0 schema and progression
