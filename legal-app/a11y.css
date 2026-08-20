@@ -1,0 +1,14 @@
+:root{
+  --muted:#5f6b63;
+  --orange:#a9441f;
+}
+html,body{touch-action:pan-x pan-y pinch-zoom}
+.section-meta,.nav button{color:#5f6b63}
+.nav button.active{color:var(--green2)}
+.level-badge{background:rgba(216,241,95,.10)}
+body.dark{
+  --muted:#a1afa4;
+  --orange:#e97b48;
+}
+body.dark .section-meta,body.dark .nav button{color:#a1afa4}
+body.dark .nav button.active{color:var(--green2)}
