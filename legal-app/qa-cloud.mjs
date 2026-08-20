@@ -5,6 +5,9 @@ const app=fs.readFileSync('legal-app/app.js','utf8');
 const sw=fs.readFileSync('legal-app/service-worker.js','utf8');
 const index=fs.readFileSync('legal-app/index.html','utf8');
 const evidence=fs.readFileSync('legal-app/js/learning-evidence.js','utf8');
+const pages=fs.readFileSync('legal-app/js/pages.js','utf8');
+const analytics=fs.readFileSync('legal-app/js/analytics.js','utf8');
+const skillCache=fs.readFileSync('legal-app/js/skill-cache.js','utf8');
 const failures=[];
 const check=(v,m)=>{if(v)console.log(`PASS: ${m}`);else{failures.push(m);console.error(`FAIL: ${m}`)}};
 check(cloud.includes('sb_publishable_')&&gate.includes('sb_publishable_'),'frontend uses only publishable Supabase client credentials');
@@ -19,6 +22,9 @@ check(cloud.includes('normalizedXpLedger')&&cloud.includes('mergeXp')&&cloud.inc
 check(!/out\.xp\s*=\s*Math\.max/.test(cloud),'legacy max(xp) conflict merge is removed');
 check(cloud.includes("client.rpc('record_skill_evidence'")&&cloud.includes('flushSkillEvidence'),'skill evidence is synchronized through the authenticated RPC');
 check(evidence.includes('eligibleForSkill')&&evidence.includes("sourceType: 'quiz'")&&evidence.includes("sourceType: 'solve_stage'"),'Quiz and SOLVE feed deterministic skill evidence without repeat-quiz farming');
+check(cloud.includes("from('skill_mastery').select")&&cloud.includes('hydrateSkillMastery')&&cloud.includes('mergeSkillResult'),'cloud hydrates and incrementally refreshes the Skill Graph read model');
+check(skillCache.includes("CACHE_PREFIX='lexifrance-skill-cache-v1:'")&&skillCache.includes('cacheKey(userId'),'Skill Graph offline cache is account-scoped');
+check(cloud.includes('clearSkillCache(previousUserId)'),'sign-out clears the active account skill cache');
 check(cloud.includes('signInAnonymously'),'soft anonymous auth path exists');
 check(/updateUser\(\{\s*email:\s*value\s*\}/.test(cloud)&&cloud.includes('signInWithOtp'),'anonymous/permanent email upgrade paths exist');
 check(gate.includes('/auth/v1/settings')&&gate.includes('anonymous_users'),'cloud gate checks live Supabase Auth capabilities before anonymous signup');
@@ -28,9 +34,11 @@ check(gate.includes("export async function initCloudGate(opts={}){lastOptions=op
 check(gate.includes('armReconnect()')&&gate.includes("window.addEventListener('online'"),'local guest retries cloud capability gate after reconnect');
 check(cloud.includes("window.addEventListener('offline'")&&cloud.includes("window.addEventListener('online'"),'cloud adapter has its own authenticated offline reconnect lifecycle');
 check(cloud.includes('replaceLiveState')&&cloud.includes('Object.assign(state'),'cloud hydration reuses the existing state object');
-check(app.includes("from'./js/state.js'")&&!app.includes("state.js?v=")&&gate.includes("import('./cloud.js')")&&!gate.includes("cloud.js?v="),'shared state and cloud adapters use canonical module URLs without duplicate instances');
+check(app.includes("from'./js/state.js'")&&!app.includes("state.js?v=")&&app.includes("from'./js/learning-evidence.js'")&&!app.includes('learning-evidence.js?v=')&&app.includes("from'./js/analytics.js'")&&!app.includes('analytics.js?v=')&&gate.includes("import('./cloud.js')")&&!gate.includes("cloud.js?v="),'shared state, evidence, analytics and cloud modules use canonical URLs');
 check(app.includes('await render();await initProductAnalytics')&&app.includes('initCloudGate'),'analytics/cloud initialize only after the local app is usable');
-check(sw.includes("VERSION='v12'")&&sw.includes("'./js/cloud-gate.js?v=12'")&&sw.includes("'./js/learning-evidence.js'")&&sw.includes("'./js/analytics.js'"),'PWA v12 caches cloud, evidence and analytics foundations');
-check(index.includes('./app.js?v=12'),'HTML loads runtime v12');
+check(pages.includes('trackSearch(rows.length,query.length)')&&!pages.includes('trackSearch(rows.length,query)'),'Search analytics never passes raw legal query text');
+check(analytics.includes('opt_out_capturing')&&analytics.includes('opt_in_capturing'),'analytics consent is reversible');
+check(sw.includes("VERSION='v13'")&&sw.includes("'./js/cloud-gate.js?v=13'")&&sw.includes("'./js/learning-evidence.js'")&&sw.includes("'./js/skill-cache.js'")&&sw.includes("'./js/analytics.js'"),'PWA v13 caches cloud, evidence, skill and analytics foundations');
+check(index.includes('./app.js?v=13')&&index.includes('./skill.css?v=13'),'HTML loads runtime and Skill Graph styles v13');
 if(failures.length){console.error(`\n${failures.length} cloud/skill foundation QA failure(s)`);process.exit(1)}
 console.log('\nCloud and skill foundation integrity passed');
