@@ -1,6 +1,6 @@
 import{boot,idx}from'./js/data.js';
 import{migrateCourseV5,migrateSolveV2}from'./js/state.js';
-import{initCloud}from'./js/cloud.js?v=11';
+import{initCloudGate}from'./js/cloud-gate.js?v=11';
 import{shell,loading,errorBox}from'./js/ui.js';
 import{home,bindHome,learn,bindLearn,solve,bindSolve,searchPage,bindSearch,profile,bindProfile}from'./js/pages.js?v=10';
 import{openLesson}from'./js/lesson.js?v=10';
@@ -19,5 +19,5 @@ function navigate(p){if(!allowed.has(p))p='home';page=p;if(location.hash!==`#${p
 async function render(){let body='';try{if(page==='home')body=await home(ctx);if(page==='learn')body=await learn(ctx);if(page==='solve')body=await solve(ctx);if(page==='search')body=searchPage(ctx);if(page==='profile')body=await profile(ctx);shell(appRoot,page,body);appRoot.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>navigate(b.dataset.nav));if(page==='home')bindHome(appRoot,ctx);if(page==='learn')bindLearn(appRoot,ctx);if(page==='solve')bindSolve(appRoot,ctx);if(page==='search')bindSearch(appRoot,ctx);if(page==='profile')bindProfile(appRoot,ctx);portraitGuard()}catch(e){console.error(e);shell(appRoot,page,errorBox(e));portraitGuard()}}
 window.addEventListener('hashchange',()=>{const p=(location.hash||'#home').slice(1);if(allowed.has(p)){page=p;render()}});
 appRoot.innerHTML=loading('Загрузка LexiFrance...');
-try{await boot();migrateCourseV5(idx().legacyLessonMap||{});migrateSolveV2();await render();initCloud({contentRelease:idx().contentRelease,onHydrate:()=>render()}).catch(e=>console.warn('LexiFrance cloud unavailable',e))}catch(e){console.error(e);appRoot.innerHTML=`<main style="padding:20px">${errorBox(e)}</main>`}
+try{await boot();migrateCourseV5(idx().legacyLessonMap||{});migrateSolveV2();await render();initCloudGate({contentRelease:idx().contentRelease,onHydrate:()=>render()}).catch(e=>console.warn('LexiFrance cloud unavailable',e))}catch(e){console.error(e);appRoot.innerHTML=`<main style="padding:20px">${errorBox(e)}</main>`}
 if('serviceWorker'in navigator){let refreshing=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(refreshing)return;refreshing=true;location.reload()});window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'});await reg.update();requestPortraitLock()}catch(e){console.error(e)}})}
