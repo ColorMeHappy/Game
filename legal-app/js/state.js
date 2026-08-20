@@ -1,7 +1,9 @@
 const KEY='lexifrance-state-v5';
 const LEGACY_KEYS=['lexifrance-state-v4','lexifrance-state-v3','lexifrance-state-v2','lexifrance-state'];
 const REVIEW_INTERVALS=[7,30,90];
-const today=()=>new Date().toISOString().slice(0,10);
+const STUDY_TIME_ZONE='Europe/Paris';
+const dateInStudyZone=(value=new Date())=>{const parts=new Intl.DateTimeFormat('en-GB',{timeZone:STUDY_TIME_ZONE,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(value);const map=Object.fromEntries(parts.filter(x=>x.type!=='literal').map(x=>[x.type,x.value]));return`${map.year}-${map.month}-${map.day}`};
+const today=()=>dateInStudyZone();
 const now=()=>new Date().toISOString();
 const dateOnly=v=>v?String(v).slice(0,10):null;
 const days=(a,b=today())=>a?Math.floor((new Date(`${dateOnly(b)}T00:00:00Z`)-new Date(`${dateOnly(a)}T00:00:00Z`))/86400000):9999;
