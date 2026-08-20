@@ -1,5 +1,6 @@
 import { state, applyPrefs } from './state.js';
 import { evidenceQueue, replaceEvidenceQueue } from './learning-evidence.js';
+import { replaceSkillCache, mergeSkillResult, clearSkillCache } from './skill-cache.js';
 
 const SUPABASE_URL = 'https://nnexhmzebviispxkpclx.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_91vY-4O1RkByvFz7IB_QPg_vwLt5AKN';
@@ -207,6 +208,14 @@ async function hydrate() {
   if (hydrateCallback) hydrateCallback();
   if (JSON.stringify(merged) !== JSON.stringify(res.data.state || {})) enqueueSnapshot('merge_local_cloud'); else { meta.lastSyncAt = iso(); persistMeta(); }
 }
+async function hydrateSkillMastery() {
+  if (!client || !meta.userId) return false;
+  const res = await client.from('skill_mastery').select('skill_id,area,score,proven_score,freshness_score,evidence_count,confidence_adjusted_score,updated_at').order('updated_at', { ascending: false });
+  if (res.error) throw res.error;
+  replaceSkillCache(res.data || [], meta.userId);
+  if (hydrateCallback) hydrateCallback();
+  return true;
+}
 
 async function flushStateQueue() {
   if (!navigator.onLine || !client || !meta.userId) return false;
@@ -240,6 +249,16 @@ export async function flushSkillEvidence() {
     const res = await client.rpc('record_skill_evidence', { p_event_id: row.eventId, p_skill_id: row.skillId, p_area: row.area, p_source_type: row.sourceType, p_source_id: row.sourceId, p_difficulty: row.difficulty, p_raw_score: row.rawScore, p_confidence: row.confidence, p_weight: row.weight, p_content_release: row.contentRelease || contentRelease || meta.contentRelease });
     if (res.error) throw res.error;
     if (!res.data || !['ok', 'duplicate'].includes(res.data.status)) throw new Error('Unexpected skill evidence response');
+    mergeSkillResult({
+      skillId: res.data.skillId,
+      area: res.data.area,
+      score: res.data.score,
+      provenScore: res.data.provenScore,
+      confidenceAdjustedScore: res.data.score,
+      freshnessScore: res.data.freshnessScore,
+      evidenceCount: res.data.evidenceCount,
+      updatedAt: iso()
+    }, meta.userId);
     const current = evidenceQueue();
     const index = current.findIndex(item => item.eventId === row.eventId && item.skillId === row.skillId);
     if (index >= 0) { current.splice(index, 1); replaceEvidenceQueue(current); }
@@ -270,7 +289,7 @@ function cloudPanelHTML() {
 }
 function bindCloudPanel(panel) {
   const sync = panel.querySelector('[data-cloud-sync]');
-  if (sync) sync.onclick = async () => { sync.disabled = true; sync.textContent = 'Синхронизация...'; enqueueSnapshot('manual_profile'); const ok = await flushCloud(); sync.textContent = ok ? 'Синхронизировано' : 'Сохранено локально'; setTimeout(() => { sync.disabled = false; }, 700); };
+  if (sync) sync.onclick = async () => { sync.disabled = true; sync.textContent = 'Синхронизация...'; enqueueSnapshot('manual_profile'); const ok = await flushCloud(); if (ok) { try { await hydrateSkillMastery(); } catch {} } sync.textContent = ok ? 'Синхронизировано' : 'Сохранено локально'; setTimeout(() => { sync.disabled = false; }, 700); };
   const upgrade = panel.querySelector('[data-cloud-upgrade]');
   const email = panel.querySelector('#cloudEmail');
   const message = panel.querySelector('[data-cloud-message]');
@@ -317,6 +336,7 @@ export async function initCloud(opts = {}) {
       await establishSession();
       c.auth.onAuthStateChange((_event, session) => { if (session?.user) { meta.userId = session.user.id; meta.isAnonymous = !!session.user.is_anonymous; meta.email = session.user.email || null; persistMeta(); } else { meta.userId = null; meta.isAnonymous = null; meta.email = null; setStatus('local'); } });
       await hydrate();
+      try { await hydrateSkillMastery(); } catch (error) { console.warn('LexiFrance skill cache hydration unavailable', error); }
       await flushCloud();
       meta.initialized = true;
       persistMeta();
@@ -341,7 +361,16 @@ export async function requestAccountUpgrade(email) {
   setStatus('verification_sent');
   return true;
 }
-export async function signOutCloud() { if (!client) return; await flushCloud(); await client.auth.signOut(); meta = { ...baseMeta(), deviceId: meta.deviceId, contentRelease }; persistMeta(); setStatus('local'); }
+export async function signOutCloud() {
+  if (!client) return;
+  const previousUserId = meta.userId;
+  await flushCloud();
+  await client.auth.signOut();
+  if (previousUserId) clearSkillCache(previousUserId);
+  meta = { ...baseMeta(), deviceId: meta.deviceId, contentRelease };
+  persistMeta();
+  setStatus('local');
+}
 export function getCloudStatus() { return { ...meta, pending: totalPending(), online: navigator.onLine, mode: meta.userId ? (meta.isAnonymous ? 'anonymous' : 'account') : 'local' }; }
 export function subscribeCloud(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 export function queueStateForSync(reason = 'manual') { enqueueSnapshot(reason); return flushCloud(); }
