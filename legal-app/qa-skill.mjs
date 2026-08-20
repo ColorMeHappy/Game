@@ -53,7 +53,7 @@ check(analytics.includes('opt_out_capturing')&&analytics.includes('opt_in_captur
 check(pages.includes('trackSearch(rows.length,query.length)')&&!pages.includes('trackSearch(rows.length,query)'),'Search analytics transmits count and query length, never the legal search text');
 check(pages.includes('data-analytics=')&&pages.includes('setAnalyticsConsent'),'Profile provides an explicit analytics consent control');
 check(analytics.includes("ALLOWED_HOSTS = new Set(['https://eu.i.posthog.com', 'https://us.i.posthog.com'])"),'PostHog ingestion is restricted to explicit regional hosts');
-check(sw.includes("'./js/skill-cache.js'")&&sw.includes("'./skill.css?v=12'"),'PWA shell includes the Skill Graph read model and styles');
+check(sw.includes("VERSION='v13'")&&sw.includes("'./js/skill-cache.js'")&&sw.includes("'./skill.css?v=13'"),'PWA v13 shell includes the Skill Graph read model and styles');
 
 if(failures.length){console.error(`\n${failures.length} Skill Graph foundation QA failure(s)`);process.exit(1)}
 console.log('\nSkill Graph foundation integrity passed');
