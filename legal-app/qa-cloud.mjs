@@ -22,6 +22,7 @@ check(cloud.includes('normalizedXpLedger')&&cloud.includes('mergeXp')&&cloud.inc
 check(!/out\.xp\s*=\s*Math\.max/.test(cloud),'legacy max(xp) conflict merge is removed');
 check(cloud.includes("client.rpc('record_skill_evidence'")&&cloud.includes('flushSkillEvidence'),'skill evidence is synchronized through the authenticated RPC');
 check(evidence.includes('eligibleForSkill')&&evidence.includes("sourceType: 'quiz'")&&evidence.includes("sourceType: 'solve_stage'"),'Quiz and SOLVE feed deterministic skill evidence without repeat-quiz farming');
+check(app.includes('initLearningEvidence();'),'Skill Evidence listener is initialized before user interactions');
 check(cloud.includes("from('skill_mastery').select")&&cloud.includes('hydrateSkillMastery')&&cloud.includes('mergeSkillResult'),'cloud hydrates and incrementally refreshes the Skill Graph read model');
 check(skillCache.includes("CACHE_PREFIX='lexifrance-skill-cache-v1:'")&&skillCache.includes('cacheKey(userId'),'Skill Graph offline cache is account-scoped');
 check(cloud.includes('clearSkillCache(previousUserId)'),'sign-out clears the active account skill cache');
