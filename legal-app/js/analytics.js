@@ -47,7 +47,11 @@ function learningEvent(event) {
 
 export async function initProductAnalytics(options = {}) {
   release = options.contentRelease || release;
-  if (initialized || !consentGranted()) return { enabled: false, reason: initialized ? 'already_initialized' : 'consent_required' };
+  if (!consentGranted()) return { enabled: false, reason: 'consent_required' };
+  if (initialized && posthog) {
+    try { posthog.opt_in_capturing(); } catch {}
+    return { enabled: true, reason: 'already_initialized' };
+  }
   const cfg = config();
   if (!cfg) return { enabled: false, reason: 'regional_host_not_configured' };
   try {
@@ -79,20 +83,29 @@ export function trackPage(route) {
 
 export function trackSearch(resultCount, queryLength) {
   const count = Math.max(0, Number(resultCount) || 0);
-  capture('search_performed', { result_count: count, query_length: Math.max(0, Number(queryLength) || 0), content_release: release || 'unknown' });
-  if (count === 0) capture('search_no_results', { query_length: Math.max(0, Number(queryLength) || 0), content_release: release || 'unknown' });
+  const length = Math.max(0, Math.min(500, Number(queryLength) || 0));
+  capture('search_performed', { result_count: count, query_length: length, content_release: release || 'unknown' });
+  if (count === 0) capture('search_no_results', { query_length: length, content_release: release || 'unknown' });
 }
 
 export function analyticsConsent() {
   return localStorage.getItem(CONSENT_KEY) || 'unset';
 }
 
+export function analyticsRuntimeStatus() {
+  return { consent: analyticsConsent(), configured: !!config(), initialized };
+}
+
 export async function setAnalyticsConsent(granted, options = {}) {
   localStorage.setItem(CONSENT_KEY, granted ? 'granted' : 'denied');
-  if (!granted && posthog) {
-    try { posthog.opt_out_capturing(); } catch {}
-    return { enabled: false };
+  if (!granted) {
+    if (posthog) { try { posthog.opt_out_capturing(); } catch {} }
+    return { enabled: false, reason: 'consent_denied' };
   }
-  if (granted) return initProductAnalytics(options);
-  return { enabled: false };
+  if (initialized && posthog) {
+    try { posthog.opt_in_capturing(); } catch {}
+    capture('analytics_consent_granted', { content_release: options.contentRelease || release || 'unknown' });
+    return { enabled: true };
+  }
+  return initProductAnalytics(options);
 }
