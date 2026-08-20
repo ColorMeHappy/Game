@@ -4,6 +4,7 @@ const gate=fs.readFileSync('legal-app/js/cloud-gate.js','utf8');
 const app=fs.readFileSync('legal-app/app.js','utf8');
 const sw=fs.readFileSync('legal-app/service-worker.js','utf8');
 const index=fs.readFileSync('legal-app/index.html','utf8');
+const evidence=fs.readFileSync('legal-app/js/learning-evidence.js','utf8');
 const failures=[];
 const check=(v,m)=>{if(v)console.log(`PASS: ${m}`);else{failures.push(m);console.error(`FAIL: ${m}`)}};
 check(cloud.includes('sb_publishable_')&&gate.includes('sb_publishable_'),'frontend uses only publishable Supabase client credentials');
@@ -12,10 +13,14 @@ check(cloud.includes('@supabase/supabase-js@2.112.3'),'Supabase browser SDK is p
 check(!cloud.includes('+esm'),'cloud adapter does not use jsDelivr +esm transitive imports');
 check(cloud.includes('data-lexifrance-supabase-sdk')&&cloud.includes('window.supabase')&&cloud.includes('createClient'),'cloud adapter uses a singleton browser SDK script loader');
 for(const key of ['eventId','entityType','entityId','operation','payload','createdAt','syncStatus'])check(cloud.includes(key),`sync queue contains ${key}`);
-check(cloud.includes("data.status==='conflict'")&&cloud.includes('mergeProgress'),'CAS conflicts are handled explicitly');
-check(cloud.includes("data.status==='duplicate'")&&cloud.includes('sync_receipts')===false,'client handles idempotent duplicate receipts without privileged DB knowledge');
+check(/data\.status\s*===\s*'conflict'/.test(cloud)&&cloud.includes('mergeProgress'),'CAS conflicts are handled explicitly');
+check(/data\.status\s*===\s*'duplicate'/.test(cloud)&&!cloud.includes('sync_receipts'),'client handles idempotent duplicate receipts without privileged DB knowledge');
+check(cloud.includes('normalizedXpLedger')&&cloud.includes('mergeXp')&&cloud.includes('xpLedger'),'multi-device XP uses an idempotent award ledger instead of max(xp)');
+check(!/out\.xp\s*=\s*Math\.max/.test(cloud),'legacy max(xp) conflict merge is removed');
+check(cloud.includes("client.rpc('record_skill_evidence'")&&cloud.includes('flushSkillEvidence'),'skill evidence is synchronized through the authenticated RPC');
+check(evidence.includes('eligibleForSkill')&&evidence.includes("sourceType: 'quiz'")&&evidence.includes("sourceType: 'solve_stage'"),'Quiz and SOLVE feed deterministic skill evidence without repeat-quiz farming');
 check(cloud.includes('signInAnonymously'),'soft anonymous auth path exists');
-check(cloud.includes('updateUser({email:value}')&&cloud.includes('signInWithOtp'),'anonymous/permanent email upgrade paths exist');
+check(/updateUser\(\{\s*email:\s*value\s*\}/.test(cloud)&&cloud.includes('signInWithOtp'),'anonymous/permanent email upgrade paths exist');
 check(gate.includes('/auth/v1/settings')&&gate.includes('anonymous_users'),'cloud gate checks live Supabase Auth capabilities before anonymous signup');
 check(gate.includes("if(caps.anonymous)return startCloud(opts)")&&gate.includes("writeGuestMeta(caps.error?'local_only':'guest_local'"),'disabled anonymous Auth stays local without triggering signup');
 check(gate.includes('requestAccountUpgrade(input.value)'),'guest can opt into permanent email cloud account without anonymous Auth');
@@ -23,8 +28,8 @@ check(gate.includes("export async function initCloudGate(opts={}){lastOptions=op
 check(gate.includes('armReconnect()')&&gate.includes("window.addEventListener('online'"),'local guest retries cloud capability gate after reconnect');
 check(cloud.includes("window.addEventListener('offline'")&&cloud.includes("window.addEventListener('online'"),'cloud adapter has its own authenticated offline reconnect lifecycle');
 check(cloud.includes('replaceLiveState')&&cloud.includes('Object.assign(state'),'cloud hydration reuses the existing state object');
-check(app.includes('await render();initCloudGate'),'cloud capability gate initializes only after local app render');
-check(sw.includes("VERSION='v11'")&&sw.includes("'./js/cloud-gate.js?v=11'")&&sw.includes("'./js/cloud.js?v=11'"),'PWA v11 caches gate and cloud adapter');
-check(index.includes('./app.js?v=11'),'HTML loads runtime v11');
-if(failures.length){console.error(`\n${failures.length} Phase 1 cloud QA failure(s)`);process.exit(1)}
-console.log('\nPhase 1 cloud integrity passed');
+check(app.includes('await render();await initProductAnalytics')&&app.includes('initCloudGate'),'analytics/cloud initialize only after the local app is usable');
+check(sw.includes("VERSION='v12'")&&sw.includes("'./js/cloud-gate.js?v=12'")&&sw.includes("'./js/learning-evidence.js?v=12'")&&sw.includes("'./js/analytics.js?v=12'"),'PWA v12 caches cloud, evidence and analytics foundations');
+check(index.includes('./app.js?v=12'),'HTML loads runtime v12');
+if(failures.length){console.error(`\n${failures.length} cloud/skill foundation QA failure(s)`);process.exit(1)}
+console.log('\nCloud and skill foundation integrity passed');
