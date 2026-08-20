@@ -9,6 +9,7 @@ import{openLesson}from'./js/lesson.js?v=10';
 import{openCase}from'./js/case.js?v=10';
 import{enhanceLesson}from'./js/legal-enhance.js?v=10';
 const appRoot=document.querySelector('#root');
+initLearningEvidence();
 function setGuarded(node,active){if(!node)return;if('inert'in node)node.inert=active;if(active)node.setAttribute('aria-hidden','true');else node.removeAttribute('aria-hidden')}
 function portraitGuard(){let guard=document.querySelector('#portraitGuard');if(!guard){guard=document.createElement('div');guard.id='portraitGuard';guard.className='portrait-guard';guard.setAttribute('role','dialog');guard.setAttribute('aria-modal','true');guard.innerHTML='<div class="portrait-card"><div class="phone-turn" aria-hidden="true"><div></div></div><h1>Поверните телефон вертикально</h1><p>LexiFrance работает в portrait mode. Ваш текущий урок, Quiz или dossier останется на том же месте.</p></div>';document.body.appendChild(guard)}const coarse=matchMedia('(pointer:coarse)').matches||navigator.maxTouchPoints>0;const phone=Math.min(window.innerWidth,window.innerHeight)<=600;const landscape=window.innerWidth>window.innerHeight;const active=coarse&&phone&&landscape;guard.classList.toggle('active',active);document.body.classList.toggle('portrait-guard-active',active);setGuarded(appRoot,active);document.querySelectorAll('.modal').forEach(m=>setGuarded(m,active));return active}
 async function requestPortraitLock(){try{if(screen.orientation?.lock)await screen.orientation.lock('portrait-primary')}catch{}}
