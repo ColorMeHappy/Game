@@ -19,7 +19,9 @@ check(cloud.includes('updateUser({email:value}')&&cloud.includes('signInWithOtp'
 check(gate.includes('/auth/v1/settings')&&gate.includes('anonymous_users'),'cloud gate checks live Supabase Auth capabilities before anonymous signup');
 check(gate.includes("if(caps.anonymous)return startCloud(opts)")&&gate.includes("writeGuestMeta(caps.error?'local_only':'guest_local'"),'disabled anonymous Auth stays local without triggering signup');
 check(gate.includes('requestAccountUpgrade(input.value)'),'guest can opt into permanent email cloud account without anonymous Auth');
-check(cloud.includes("window.addEventListener('offline'")&&cloud.includes("window.addEventListener('online'"),'offline reconnect lifecycle is implemented');
+check(gate.indexOf('if(sessionHint())return startCloud(opts)')<gate.indexOf('if(!navigator.onLine)'),'existing account session starts cloud adapter even while offline');
+check(gate.includes('armReconnect()')&&gate.includes("window.addEventListener('online'"),'local guest retries cloud capability gate after reconnect');
+check(cloud.includes("window.addEventListener('offline'")&&cloud.includes("window.addEventListener('online'"),'cloud adapter has its own authenticated offline reconnect lifecycle');
 check(cloud.includes('replaceLiveState')&&cloud.includes('Object.assign(state'),'cloud hydration reuses the existing state object');
 check(app.includes('await render();initCloudGate'),'cloud capability gate initializes only after local app render');
 check(sw.includes("VERSION='v11'")&&sw.includes("'./js/cloud-gate.js?v=11'")&&sw.includes("'./js/cloud.js?v=11'"),'PWA v11 caches gate and cloud adapter');
