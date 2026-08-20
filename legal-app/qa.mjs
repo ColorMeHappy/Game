@@ -1,7 +1,7 @@
 import fs from'node:fs';
 const r='legal-app',fail=[];const bad=m=>{fail.push(m);console.error('FAIL',m)},ok=m=>console.log('PASS',m),read=p=>fs.readFileSync(`${r}/${p}`,'utf8'),json=p=>JSON.parse(read(p));
 const idx=json('content/app-index.json');
-if(idx.schemaVersion!=='5.1.0'||idx.contentRelease!=='2026.08.16.2'||idx.runtimeVersion!=='11')bad('app-index versioning');else ok('app-index versioning');
+if(idx.schemaVersion!=='5.1.0'||idx.contentRelease!=='2026.08.16.2'||idx.runtimeVersion!=='13')bad('app-index versioning');else ok('app-index versioning');
 if('version'in idx||'contentVersion'in idx)bad('ambiguous app-index version keys');
 const lessonIds=idx.paths.flatMap(p=>p.lessonIds);
 if(lessonIds.length!==20||new Set(lessonIds).size!==20)bad('20 unique lessons');else ok('20 lessons');
@@ -10,11 +10,13 @@ const updates=json('content/updates.json');if(updates.schemaVersion!=='5.1.0'||u
 const search=json('content/search/core.json');if(search.schemaVersion!=='5.1.0'||search.contentRelease!==idx.contentRelease||search.items?.length!==20)bad('search versioning/index');else ok('search versioning/index');
 const state=read('js/state.js'),pages=read('js/pages.js'),lesson=read('js/lesson.js'),app=read('app.js'),sw=read('service-worker.js'),data=read('js/data.js'),manifest=json('manifest.webmanifest');
 if(!state.includes('REVIEW_INTERVALS=[7,30,90]'))bad('spaced repetition 7/30/90');else ok('spaced repetition intervals');
+if(!state.includes("STUDY_TIME_ZONE='Europe/Paris'"))bad('study-day timezone');else ok('study-day timezone Europe/Paris');
 if(state.includes("['Applied','Применяете'"))bad('Applied mastery label remains');
 if(!state.includes("['Confident','Уверенное знание'"))bad('Confident mastery label');
 if(!pages.includes('mastery(order[i-1]).score>=64'))bad('lesson unlock is not 64');else ok('unlock at 64%');
 if(pages.includes('score>=37')||pages.includes('>=37'))bad('legacy 37 unlock remains');
 if(!pages.includes('Knowledge')||!pages.includes('Application'))bad('knowledge/application split');else ok('Knowledge/Application split');
+if(!pages.includes("section('02','Skill Graph'"))bad('Skill Graph profile section');else ok('Skill Graph profile section');
 if(!lesson.includes('if(!unavailable)openLessonProgress'))bad('status before mastery open');else ok('status checked before opening mastery');
 if(!lesson.includes('opt.feedback'))bad('option-specific quiz feedback');
 if(!state.includes('recordQuizReview')||!state.includes('reviews:[]'))bad('quiz review history');else ok('review history');
@@ -22,7 +24,7 @@ if(!state.includes('migrateSolveV2')||!state.includes('legacyCaseHistory'))bad('
 if(!state.includes('saveCaseNotebook')||!state.includes('submitCaseStage'))bad('Case v2 persistence/scoring');
 if(manifest.orientation!=='portrait-primary')bad('manifest portrait-primary');else ok('manifest portrait-primary');
 if(!app.includes('portraitGuard')||!app.includes("lock('portrait-primary')"))bad('app portrait guard/lock');else ok('portrait guard runtime');
-if(!sw.includes("const VERSION='v11'"))bad('service worker v11');else ok('service worker v11');
+if(!sw.includes("const VERSION='v13'"))bad('service worker v13');else ok('service worker v13');
 if(!sw.includes('Promise.allSettled')||!sw.includes('bestEffortLegal'))bad('best effort legal precache');
 if(!sw.includes('if(r&&r.ok)')||!sw.includes('if(hit)return hit'))bad('network-first invalid response fallback');else ok('network-first non-OK fallback');
 if(!data.includes('normalizeMeta')||!/delete\s+(?:data|d)\.contentVersion/.test(data))bad('runtime metadata normalization');else ok('runtime metadata normalization');
