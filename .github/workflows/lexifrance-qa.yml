@@ -6,6 +6,7 @@ on:
       - main
       - lexifrance-v5-solve2
       - lexifrance-next-phase1
+      - lexifrance-next-phase2-foundation
     paths:
       - 'legal-app/**'
       - '.github/workflows/lexifrance-qa.yml'
@@ -48,7 +49,7 @@ jobs:
 
   browser:
     needs: integrity
-    timeout-minutes: 5
+    timeout-minutes: 6
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -57,18 +58,38 @@ jobs:
           node-version: '22'
       - name: Install Chromium test runtime
         run: |
-          npm install --no-save playwright@1.55.0
+          npm install --no-save playwright@1.62.1
           npx playwright install --with-deps chromium
       - name: Start static server
         run: |
           python3 -m http.server 4173 > /tmp/lexifrance-http.log 2>&1 &
           sleep 2
       - name: V5.1 mobile, Quiz, SOLVE, orientation, migration and offline E2E
-        run: timeout 150s node legal-app/e2e-wrapper.mjs
+        run: timeout 180s node legal-app/e2e-wrapper.mjs
+
+  accessibility:
+    needs: integrity
+    timeout-minutes: 6
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install accessibility test runtime
+        run: |
+          npm install --no-save playwright@1.62.1 @axe-core/playwright@4.13.0
+          npx playwright install --with-deps chromium
+      - name: Start static server
+        run: |
+          python3 -m http.server 4173 > /tmp/lexifrance-http-a11y.log 2>&1 &
+          sleep 2
+      - name: WCAG accessibility regression
+        run: timeout 120s node legal-app/qa-a11y.mjs
 
   webkit:
     needs: integrity
-    timeout-minutes: 8
+    timeout-minutes: 9
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -77,11 +98,11 @@ jobs:
           node-version: '22'
       - name: Install WebKit test runtime
         run: |
-          npm install --no-save playwright@1.55.0
+          npm install --no-save playwright@1.62.1
           npx playwright install --with-deps webkit
       - name: Start static server
         run: |
           python3 -m http.server 4173 > /tmp/lexifrance-http-webkit.log 2>&1 &
           sleep 2
       - name: iPhone portrait-only WebKit QA
-        run: timeout 90s node legal-app/webkit-wrapper.mjs
+        run: timeout 120s node legal-app/webkit-wrapper.mjs
