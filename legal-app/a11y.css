@@ -5,7 +5,9 @@
 html,body{touch-action:pan-x pan-y pinch-zoom}
 .section-meta,.nav button{color:#5f6b63}
 .nav button.active{color:var(--green2)}
-.level-badge{background:rgba(216,241,95,.10)}
+.level-badge{background:rgba(0,0,0,.18);color:var(--lime)}
+.level-card p{color:rgba(255,255,255,.86)}
+.dossier-grid span{color:rgba(255,255,255,.86)}
 .lesson-row.locked{opacity:1;border-style:dashed;background:var(--soft)}
 .lesson-row.locked h3{color:var(--muted)}
 .lesson-row.locked .lesson-num{background:var(--line)}
