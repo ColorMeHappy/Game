@@ -10,8 +10,9 @@ Region: `eu-west-3`
 3. `20260819183813_lexifrance_skill_fk_indexes`
 4. `20260820153000_lexifrance_skill_evidence_aggregator`
 5. `20260820154735_lexifrance_skill_confidence_aggregation_fix`
+6. `20260820184750_lexifrance_skill_evidence_integrity_hardening`
 
-The authoritative SQL is tracked by Supabase migration history. Do not bypass migrations with ad-hoc production DDL.
+The authoritative migration history lives in Supabase. New reproducibility-sensitive migrations are also stored under `legal-app/supabase/migrations/`.
 
 ## Phase 1 state model
 
@@ -34,24 +35,38 @@ Runtime v12 adds an idempotent XP award ledger. Legacy XP is preserved as a base
 It validates:
 
 - active skill ID
-- area/source metadata
+- known LexiFrance area
+- current source type (`quiz` or `solve_stage`)
+- non-empty source ID
 - difficulty 1-10
 - score 0-100
 - optional confidence 1-5
-- positive weight
+- skill weight greater than 0 and no greater than 1
 
-Evidence is idempotent on `(user_id, event_id, skill_id)`.
+Evidence remains retry-idempotent on `(user_id, event_id, skill_id)`.
 
-Current deterministic client mapping converts existing Quiz cognitive levels and SOLVE stage categories into the 20 registered legal skills. Quiz evidence is accepted from the first attempt only so repeating the same question cannot inflate evidence count. SOLVE stage evidence is emitted only after a stage is finalized.
+Quiz evidence now has an additional cross-device integrity rule: a partial unique index on `(user_id, source_type, source_id, skill_id)` for `source_type='quiz'`. Two devices can therefore not both claim a separate first-attempt evidence row for the same question and skill.
+
+SOLVE deliberately allows repeated practice, but repeated evidence from the same finalized stage has deterministic diminishing weight: first attempt `1.00`, second `0.60`, third `0.35`, later attempts `0.20`, before task difficulty and skill weight are applied. This preserves useful repeat practice without allowing one dossier stage to dominate the Skill Graph through farming.
+
+Current deterministic client mapping converts existing Quiz cognitive levels and SOLVE stage categories into the 20 registered legal skills. Explicit `skillsMeasured` and `skillWeights` metadata can replace fallback mappings as content is editorially upgraded.
 
 The aggregator keeps separate concepts:
 
 - `proven_score` - result weighted by task/skill weight and difficulty
 - `confidence_adjusted_score` - the same evidence with extra weight for confidently-wrong answers and reduced weight for high-score/low-confidence answers
 - `freshness_score` - recency indicator that does not erase permanent proven competence
-- `evidence_count` - count of unique accepted evidence rows
+- `evidence_count` - count of accepted evidence rows
 
 A confidently-wrong result therefore lowers calibrated competence more strongly without rewriting the underlying proven score.
+
+### Trust boundary
+
+Current Quiz/SOLVE evidence is learning-product telemetry from the authenticated browser. Server validation prevents ownership violations, malformed values, cross-device Quiz duplication and unlimited same-stage SOLVE weight, but it does not turn a browser result into a professional credential. Future professional/open-ended evaluation must use the stricter pipeline defined by the roadmap:
+
+`evaluation -> schema validation -> business-rule validation -> score normalization -> skill_evidence -> deterministic aggregator -> skill_mastery`.
+
+No AI evaluator may write `skill_mastery` directly.
 
 ## RLS
 
@@ -67,7 +82,7 @@ Guest/local -> anonymous Supabase user -> permanent account.
 
 Anonymous users use Supabase's `authenticated` PostgreSQL role and remain isolated through `auth.uid()` RLS.
 
-Live browser Auth QA must still prove the complete fresh-browser anonymous -> cloud -> offline/reconnect -> permanent-account sequence before Phase 1 is considered fully closed.
+Live browser Auth QA must still prove the complete fresh-browser anonymous -> cloud -> offline/reconnect -> permanent-account sequence before Phase 1 is considered fully closed. Until that gate is green, Phase 2 code remains development-branch work and must not be promoted as completed production functionality.
 
 ## Offline sync
 
@@ -85,4 +100,4 @@ Skill evidence has a separate bounded offline queue. Reconnect flushes state thr
 
 ## Security gate
 
-Supabase Security Advisor returned no findings after the Phase 2 evidence migrations. The frontend uses only a publishable key.
+Supabase Security Advisor returned no findings after the Phase 2 evidence integrity migration. The frontend uses only a publishable key.
