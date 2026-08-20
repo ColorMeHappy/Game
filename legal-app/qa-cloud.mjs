@@ -28,8 +28,9 @@ check(gate.includes("export async function initCloudGate(opts={}){lastOptions=op
 check(gate.includes('armReconnect()')&&gate.includes("window.addEventListener('online'"),'local guest retries cloud capability gate after reconnect');
 check(cloud.includes("window.addEventListener('offline'")&&cloud.includes("window.addEventListener('online'"),'cloud adapter has its own authenticated offline reconnect lifecycle');
 check(cloud.includes('replaceLiveState')&&cloud.includes('Object.assign(state'),'cloud hydration reuses the existing state object');
+check(app.includes("from'./js/state.js'")&&!app.includes("state.js?v=")&&gate.includes("import('./cloud.js')")&&!gate.includes("cloud.js?v="),'shared state and cloud adapters use canonical module URLs without duplicate instances');
 check(app.includes('await render();await initProductAnalytics')&&app.includes('initCloudGate'),'analytics/cloud initialize only after the local app is usable');
-check(sw.includes("VERSION='v12'")&&sw.includes("'./js/cloud-gate.js?v=12'")&&sw.includes("'./js/learning-evidence.js?v=12'")&&sw.includes("'./js/analytics.js?v=12'"),'PWA v12 caches cloud, evidence and analytics foundations');
+check(sw.includes("VERSION='v12'")&&sw.includes("'./js/cloud-gate.js?v=12'")&&sw.includes("'./js/learning-evidence.js'")&&sw.includes("'./js/analytics.js'"),'PWA v12 caches cloud, evidence and analytics foundations');
 check(index.includes('./app.js?v=12'),'HTML loads runtime v12');
 if(failures.length){console.error(`\n${failures.length} cloud/skill foundation QA failure(s)`);process.exit(1)}
 console.log('\nCloud and skill foundation integrity passed');
