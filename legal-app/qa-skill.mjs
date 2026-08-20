@@ -5,6 +5,7 @@ const state=fs.readFileSync('legal-app/js/state.js','utf8');
 const evidence=fs.readFileSync('legal-app/js/learning-evidence.js','utf8');
 const confidence=fs.readFileSync('legal-app/js/confidence.js','utf8');
 const analytics=fs.readFileSync('legal-app/js/analytics.js','utf8');
+const migration=fs.readFileSync('legal-app/supabase/migrations/20260820213759_lexifrance_confidence_event_projection.sql','utf8');
 const failures=[];
 const check=(value,message)=>{if(value)console.log(`PASS: ${message}`);else{failures.push(message);console.error(`FAIL: ${message}`)}};
 
@@ -23,10 +24,11 @@ check(state.includes('xpLedger:{}')&&state.includes('claimXp(`lesson:${lessonId}
 check(state.includes("eligibleForSkill:q.attempts===1"),'only first Quiz attempt is eligible for current skill evidence');
 check(state.includes("emitLearning('case_stage_completed'")&&state.includes("emitLearning('question_answered'"),'Quiz and SOLVE emit structured learning events');
 check(evidence.includes("const QUEUE_KEY = 'lexifrance-skill-evidence-queue-v1'")&&evidence.includes('MAX_QUEUE = 240'),'skill evidence has a bounded offline queue');
-check(evidence.includes('consumeQuizConfidence')&&evidence.includes('consumeCaseConfidence'),'confidence is attached to Quiz and SOLVE evidence before aggregation');
+check(evidence.includes('const confidence = detail.confidence ?? consumeQuizConfidence(detail.questionId);\n  const pack = await quizPack')&&evidence.includes('const confidence = detail.confidence ?? consumeCaseConfidence();\n  const caseData = await oneCase'),'confidence is consumed synchronously before asynchronous content retrieval');
 check(evidence.includes("type: 'confidently_wrong'")&&evidence.includes('confidence >= 4 && score < 50'),'confidently-wrong detection has an explicit behavioral rule');
 check(confidence.includes('difficulty < 7')&&confidence.includes("/\\b(Applied|Expert)\\b/i"),'confidence prompt is limited to complex Quiz and Applied/Expert SOLVE');
 check(confidence.includes("event.stopImmediatePropagation()")&&confidence.includes('data-confidence-required'),'complex answers cannot submit before confidence selection');
+check(migration.includes('insert into public.confidence_events')&&migration.includes('on conflict (user_id,event_id) do nothing'),'accepted confidence evidence is persisted idempotently server-side');
 check(analytics.includes("disable_session_recording: true")&&analytics.includes('autocapture: false')&&analytics.includes("person_profiles: 'identified_only'"),'analytics foundation disables automatic sensitive capture');
 check(!analytics.includes('search_query')&&!analytics.includes('query_text'),'analytics module does not transmit raw search text');
 check(analytics.includes("'confidence_submitted'")&&analytics.includes("'confidently_wrong'"),'privacy-safe confidence events are available to analytics');

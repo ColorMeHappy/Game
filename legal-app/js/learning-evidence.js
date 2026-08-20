@@ -50,10 +50,10 @@ function emitCalibration(sourceType, sourceId, confidence, score, extra = {}) {
 
 async function fromQuestion(detail) {
   if (!detail.eligibleForSkill) return;
+  const confidence = detail.confidence ?? consumeQuizConfidence(detail.questionId);
   const pack = await quizPack(detail.lessonId);
   const question = (pack.questions || []).find(item => item.id === detail.questionId);
   if (!question) return;
-  const confidence = detail.confidence ?? consumeQuizConfidence(detail.questionId);
   const rawScore = detail.correct ? 100 : 0;
   enqueueRows({
     eventId: detail.eventId,
@@ -69,10 +69,10 @@ async function fromQuestion(detail) {
 }
 
 async function fromCaseStage(detail) {
+  const confidence = detail.confidence ?? consumeCaseConfidence();
   const caseData = await oneCase(detail.caseId);
   const task = (caseData.tasks || []).find(item => item.id === detail.stageId);
   if (!task) return;
-  const confidence = detail.confidence ?? consumeCaseConfidence();
   const rawScore = Math.round(Math.max(0, Math.min(1, Number(detail.ratio) || 0)) * 100);
   enqueueRows({
     eventId: detail.eventId,

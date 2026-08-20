@@ -2,7 +2,7 @@ import{boot,idx}from'./js/data.js';
 import{migrateCourseV5,migrateSolveV2}from'./js/state.js';
 import{initLearningEvidence}from'./js/learning-evidence.js';
 import{initProductAnalytics,trackPage}from'./js/analytics.js';
-import{initCloudGate}from'./js/cloud-gate.js?v=13';
+import{initCloudGate}from'./js/cloud-gate.js?v=14';
 import{shell,loading,errorBox}from'./js/ui.js';
 import{home,bindHome,learn,bindLearn,solve,bindSolve,searchPage,bindSearch,profile,bindProfile}from'./js/pages.js?v=10';
 import{openLesson}from'./js/lesson.js?v=10';

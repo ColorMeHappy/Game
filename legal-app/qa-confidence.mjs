@@ -11,6 +11,7 @@ const fail=message=>{throw new Error(message)};
 try{
   await page.goto(`${BASE}#learn`,{waitUntil:'domcontentloaded'});
   await page.waitForSelector('[data-lesson="corp-01"]');
+  await page.evaluate(()=>{window.__confidenceQa=[];window.addEventListener('lexifrance:learning-event',event=>{if(['confidence_submitted','confidently_wrong'].includes(event.detail?.type))window.__confidenceQa.push(event.detail)})});
   await page.click('[data-lesson="corp-01"]');
   await page.waitForSelector('.modal #quizStage');
   for(let index=0;index<6;index++){
@@ -29,10 +30,13 @@ try{
   if(!(await complexCard.locator('.answer-feedback').evaluate(node=>node.classList.contains('hidden'))))fail('complex Quiz answered before confidence selection');
   await complexCard.locator('[data-confidence="5"]').click();
   await complexCard.locator('[data-answer]').filter({hasText:wrong.text}).first().click();
-  await page.waitForTimeout(180);
+  await page.waitForTimeout(220);
   const quizEvidence=await page.evaluate(qid=>JSON.parse(localStorage.getItem('lexifrance-skill-evidence-queue-v1')||'[]').filter(row=>row.sourceId===qid),complex.id);
   if(!quizEvidence.length||quizEvidence.some(row=>row.confidence!==5||row.rawScore!==0))fail('Quiz confidence was not attached to first-attempt skill evidence');
+  const calibrationEvents=await page.evaluate(()=>window.__confidenceQa||[]);
+  if(!calibrationEvents.some(event=>event.type==='confidently_wrong'&&event.confidence===5&&event.score===0))fail('confidently-wrong behavioral event was not emitted');
   console.log('PASS: complex Quiz requires and records confidence');
+  console.log('PASS: confidently-wrong event emitted');
 
   const back=page.locator('.modal .back').first();
   if(await back.count())await back.click();
@@ -48,7 +52,7 @@ try{
   const option=task.locator('[data-case-option]').first();
   if(await option.count())await option.click();
   await task.locator('#submitCaseTask').click();
-  await page.waitForTimeout(180);
+  await page.waitForTimeout(220);
   const solveEvidence=await page.evaluate(()=>JSON.parse(localStorage.getItem('lexifrance-skill-evidence-queue-v1')||'[]').filter(row=>row.sourceType==='solve_stage'&&row.confidence===4));
   if(!solveEvidence.length)fail('SOLVE confidence was not attached to skill evidence');
   console.log('PASS: Applied SOLVE requires and records confidence');

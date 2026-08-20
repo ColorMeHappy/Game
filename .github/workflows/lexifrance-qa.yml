@@ -114,3 +114,24 @@ jobs:
           sleep 2
       - name: iPhone portrait-only WebKit QA
         run: timeout 120s node legal-app/webkit-wrapper.mjs
+
+  cloud-live:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/lexifrance-next-phase2-foundation' && contains(github.event.head_commit.message, '[cloud-live]') }}
+    needs: [integrity, browser, accessibility, webkit]
+    timeout-minutes: 7
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install live cloud test runtime
+        run: |
+          npm install --no-save playwright@1.62.1
+          npx playwright install --with-deps chromium
+      - name: Start static server
+        run: |
+          python3 -m http.server 4173 > /tmp/lexifrance-http-cloud-live.log 2>&1 &
+          sleep 2
+      - name: Phase 1 live anonymous auth, sync, conflict, RLS and account-upgrade gate
+        run: timeout 180s node legal-app/qa-cloud-live.mjs

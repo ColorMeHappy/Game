@@ -1,7 +1,7 @@
 import fs from'node:fs';
 const r='legal-app',fail=[];const bad=m=>{fail.push(m);console.error('FAIL',m)},ok=m=>console.log('PASS',m),read=p=>fs.readFileSync(`${r}/${p}`,'utf8'),json=p=>JSON.parse(read(p));
 const idx=json('content/app-index.json');
-if(idx.schemaVersion!=='5.1.0'||idx.contentRelease!=='2026.08.16.2'||idx.runtimeVersion!=='13')bad('app-index versioning');else ok('app-index versioning');
+if(idx.schemaVersion!=='5.1.0'||idx.contentRelease!=='2026.08.16.2'||idx.runtimeVersion!=='14')bad('app-index versioning');else ok('app-index versioning');
 if('version'in idx||'contentVersion'in idx)bad('ambiguous app-index version keys');
 const lessonIds=idx.paths.flatMap(p=>p.lessonIds);
 if(lessonIds.length!==20||new Set(lessonIds).size!==20)bad('20 unique lessons');else ok('20 lessons');
@@ -24,7 +24,7 @@ if(!state.includes('migrateSolveV2')||!state.includes('legacyCaseHistory'))bad('
 if(!state.includes('saveCaseNotebook')||!state.includes('submitCaseStage'))bad('Case v2 persistence/scoring');
 if(manifest.orientation!=='portrait-primary')bad('manifest portrait-primary');else ok('manifest portrait-primary');
 if(!app.includes('portraitGuard')||!app.includes("lock('portrait-primary')"))bad('app portrait guard/lock');else ok('portrait guard runtime');
-if(!sw.includes("const VERSION='v13'"))bad('service worker v13');else ok('service worker v13');
+if(!sw.includes("const VERSION='v14'"))bad('service worker v14');else ok('service worker v14');
 if(!sw.includes('Promise.allSettled')||!sw.includes('bestEffortLegal'))bad('best effort legal precache');
 if(!sw.includes('if(r&&r.ok)')||!sw.includes('if(hit)return hit'))bad('network-first invalid response fallback');else ok('network-first non-OK fallback');
 if(!data.includes('normalizeMeta')||!/delete\s+(?:data|d)\.contentVersion/.test(data))bad('runtime metadata normalization');else ok('runtime metadata normalization');
