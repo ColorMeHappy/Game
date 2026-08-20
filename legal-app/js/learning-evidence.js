@@ -4,7 +4,7 @@ import { areaFromLessonId, quizSkills, caseSkills, normalizedDifficulty } from '
 const QUEUE_KEY = 'lexifrance-skill-evidence-queue-v1';
 const MAX_QUEUE = 240;
 const safeParse = (value, fallback) => { try { return JSON.parse(value || '') ?? fallback; } catch { return fallback; } };
-const uuid = () => crypto?.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
+const uuid = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
 
 function readQueue() {
   const rows = safeParse(localStorage.getItem(QUEUE_KEY), []);
@@ -39,6 +39,7 @@ function enqueueRows(base, skills) {
 }
 
 async function fromQuestion(detail) {
+  if (!detail.eligibleForSkill) return;
   const pack = await quizPack(detail.lessonId);
   const question = (pack.questions || []).find(item => item.id === detail.questionId);
   if (!question) return;
