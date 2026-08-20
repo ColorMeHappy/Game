@@ -29,6 +29,7 @@ function safeProperties(detail = {}) {
   if (type === 'solve_started') return { ...common, case_id: detail.caseId, attempt_no: detail.attemptNo };
   if (type === 'case_stage_completed') return { ...common, case_id: detail.caseId, stage_id: detail.stageId, ratio: detail.ratio, category: detail.category, wrong_attempts: detail.wrongAttempts || 0 };
   if (type === 'solve_completed') return { ...common, case_id: detail.caseId, score: detail.score, xp_earned: detail.xpEarned || 0, wrong_attempts: detail.wrongAttempts || 0 };
+  if (type === 'confidence_submitted' || type === 'confidently_wrong') return { ...common, source_type: detail.sourceType, source_id: detail.sourceId, confidence: detail.confidence, score: detail.score };
   return common;
 }
 
@@ -40,7 +41,7 @@ function capture(type, properties = {}) {
 function learningEvent(event) {
   const detail = event?.detail || {};
   const type = String(detail.type || '');
-  const allowed = new Set(['lesson_started', 'lesson_completed', 'question_answered', 'review_completed', 'solve_started', 'case_stage_completed', 'solve_completed']);
+  const allowed = new Set(['lesson_started', 'lesson_completed', 'question_answered', 'review_completed', 'solve_started', 'case_stage_completed', 'solve_completed', 'confidence_submitted', 'confidently_wrong']);
   if (!allowed.has(type)) return;
   capture(type, safeProperties(detail));
 }

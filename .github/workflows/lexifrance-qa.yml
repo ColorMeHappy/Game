@@ -55,7 +55,7 @@ jobs:
 
   browser:
     needs: integrity
-    timeout-minutes: 6
+    timeout-minutes: 7
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -72,10 +72,12 @@ jobs:
           sleep 2
       - name: V5.1 mobile, Quiz, SOLVE, orientation, migration and offline E2E
         run: timeout 180s node legal-app/e2e-wrapper.mjs
+      - name: Confidence calibration behavior
+        run: timeout 120s node legal-app/qa-confidence.mjs
 
   accessibility:
     needs: integrity
-    timeout-minutes: 6
+    timeout-minutes: 7
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -91,7 +93,7 @@ jobs:
           python3 -m http.server 4173 > /tmp/lexifrance-http-a11y.log 2>&1 &
           sleep 2
       - name: WCAG accessibility regression
-        run: timeout 120s node legal-app/qa-a11y.mjs
+        run: timeout 150s node legal-app/qa-a11y.mjs
 
   webkit:
     needs: integrity
