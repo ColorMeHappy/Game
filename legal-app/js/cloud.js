@@ -2,7 +2,7 @@ import{state,applyPrefs}from'./state.js';
 
 const SUPABASE_URL='https://nnexhmzebviispxkpclx.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_91vY-4O1RkByvFz7IB_QPg_vwLt5AKN';
-const SDK_URL='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const SDK_URL='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3';
 const META_KEY='lexifrance-cloud-v1';
 const QUEUE_KEY='lexifrance-sync-queue-v1';
 const STATE_KEY='lexifrance-state-v5';
@@ -13,7 +13,7 @@ const iso=()=>new Date().toISOString();
 const uuid=()=>window.crypto&&window.crypto.randomUUID?window.crypto.randomUUID():`${Date.now()}-${Math.random().toString(16).slice(2)}-${Math.random().toString(16).slice(2)}`;
 const baseMeta=()=>({deviceId:uuid(),userId:null,isAnonymous:null,email:null,version:0,status:'local',pending:0,lastSyncAt:null,lastError:null,contentRelease:null,initialized:false});
 let meta={...baseMeta(),...safeParse(localStorage.getItem(META_KEY),{})};
-let client=null,starting=null,flushTimer=null,contentRelease=null,hydrateCallback=null,suppressQueue=false,originalSetItem=Storage.prototype.setItem,observer=null;
+let client=null,starting=null,flushTimer=null,contentRelease=null,hydrateCallback=null,suppressQueue=false,originalSetItem=Storage.prototype.setItem,observer=null,sdkPromise=null;
 const listeners=new Set();
 
 function stateSnapshot(){return clone(state)}
@@ -35,7 +35,8 @@ export function mergeProgress(local={},remote={}){const localLearning=localHasLe
 
 function enqueueSnapshot(reason='state_change'){if(suppressQueue)return;const q=queue(),last=q.length?q[q.length-1]:null;const event={eventId:uuid(),entityType:'state',entityId:'lexifrance',operation:'replace_state',payload:stateSnapshot(),createdAt:iso(),syncStatus:'pending',reason,localRevision:(last&&last.localRevision||0)+1};const compact=q.filter(x=>x.entityType!=='state'||x.syncStatus!=='pending');compact.push(event);writeQueue(compact);scheduleFlush()}
 function scheduleFlush(ms=450){clearTimeout(flushTimer);flushTimer=setTimeout(()=>{flushCloud().catch(()=>{})},ms)}
-async function loadSdk(){if(client)return client;const mod=await import(SDK_URL);client=mod.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});return client}
+function ensureSdkScript(){if(window.supabase&&typeof window.supabase.createClient==='function')return Promise.resolve(window.supabase);if(sdkPromise)return sdkPromise;sdkPromise=new Promise((resolve,reject)=>{const existing=document.querySelector('script[data-lexifrance-supabase-sdk]');const done=()=>{if(window.supabase&&typeof window.supabase.createClient==='function')resolve(window.supabase);else reject(new Error('Supabase SDK loaded without createClient'))};if(existing){existing.addEventListener('load',done,{once:true});existing.addEventListener('error',()=>reject(new Error('Supabase SDK failed to load')),{once:true});return}const script=document.createElement('script');script.src=SDK_URL;script.async=true;script.crossOrigin='anonymous';script.dataset.lexifranceSupabaseSdk='1';script.addEventListener('load',done,{once:true});script.addEventListener('error',()=>reject(new Error('Supabase SDK failed to load')),{once:true});document.head.appendChild(script)});return sdkPromise}
+async function loadSdk(){if(client)return client;const sdk=await ensureSdkScript();client=sdk.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});return client}
 async function establishSession(){const c=await loadSdk();let result=await c.auth.getSession();if(result.error)throw result.error;let session=result.data.session;if(!session){const anonymous=await c.auth.signInAnonymously();if(anonymous.error)throw anonymous.error;session=anonymous.data.session}if(!session)throw new Error('Supabase session unavailable');meta.userId=session.user.id;meta.isAnonymous=!!session.user.is_anonymous;meta.email=session.user.email||null;persistMeta();return session}
 async function hydrate(){const c=await loadSdk(),res=await c.from('user_state').select('state,state_version,updated_at,content_release').maybeSingle();if(res.error)throw res.error;const local=stateSnapshot();if(!res.data){enqueueSnapshot('initial_local_migration');return}meta.version=Number(res.data.state_version)||0;const merged=mergeProgress(local,res.data.state||{});replaceLiveState(merged);if(hydrateCallback)hydrateCallback();if(JSON.stringify(merged)!==JSON.stringify(res.data.state||{}))enqueueSnapshot('merge_local_cloud');else{meta.lastSyncAt=iso();persistMeta()}}
 
