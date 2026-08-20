@@ -1,12 +1,13 @@
 import fs from'node:fs';
 const cloud=fs.readFileSync('legal-app/js/cloud.js','utf8');
+const gate=fs.readFileSync('legal-app/js/cloud-gate.js','utf8');
 const app=fs.readFileSync('legal-app/app.js','utf8');
 const sw=fs.readFileSync('legal-app/service-worker.js','utf8');
 const index=fs.readFileSync('legal-app/index.html','utf8');
 const failures=[];
 const check=(v,m)=>{if(v)console.log(`PASS: ${m}`);else{failures.push(m);console.error(`FAIL: ${m}`)}};
-check(cloud.includes('sb_publishable_'),'frontend uses a publishable Supabase client key');
-check(!/service[_-]?role[^\n]{0,60}(eyJ|sb_)/i.test(cloud),'frontend contains no service-role credential');
+check(cloud.includes('sb_publishable_')&&gate.includes('sb_publishable_'),'frontend uses only publishable Supabase client credentials');
+check(!/service[_-]?role[^\n]{0,60}(eyJ|sb_)/i.test(cloud+gate),'frontend contains no service-role credential');
 check(cloud.includes('@supabase/supabase-js@2.112.3'),'Supabase browser SDK is pinned to 2.112.3');
 check(!cloud.includes('+esm'),'cloud adapter does not use jsDelivr +esm transitive imports');
 check(cloud.includes('data-lexifrance-supabase-sdk')&&cloud.includes('window.supabase')&&cloud.includes('createClient'),'cloud adapter uses a singleton browser SDK script loader');
@@ -14,11 +15,14 @@ for(const key of ['eventId','entityType','entityId','operation','payload','creat
 check(cloud.includes("data.status==='conflict'")&&cloud.includes('mergeProgress'),'CAS conflicts are handled explicitly');
 check(cloud.includes("data.status==='duplicate'")&&cloud.includes('sync_receipts')===false,'client handles idempotent duplicate receipts without privileged DB knowledge');
 check(cloud.includes('signInAnonymously'),'soft anonymous auth path exists');
-check(cloud.includes('updateUser({email:value}'),'anonymous/email upgrade path exists');
+check(cloud.includes('updateUser({email:value}')&&cloud.includes('signInWithOtp'),'anonymous/permanent email upgrade paths exist');
+check(gate.includes('/auth/v1/settings')&&gate.includes('anonymous_users'),'cloud gate checks live Supabase Auth capabilities before anonymous signup');
+check(gate.includes("if(caps.anonymous)return startCloud(opts)")&&gate.includes("writeGuestMeta(caps.error?'local_only':'guest_local'"),'disabled anonymous Auth stays local without triggering signup');
+check(gate.includes('requestAccountUpgrade(input.value)'),'guest can opt into permanent email cloud account without anonymous Auth');
 check(cloud.includes("window.addEventListener('offline'")&&cloud.includes("window.addEventListener('online'"),'offline reconnect lifecycle is implemented');
 check(cloud.includes('replaceLiveState')&&cloud.includes('Object.assign(state'),'cloud hydration reuses the existing state object');
-check(app.includes('await render();initCloud'),'cloud initializes only after local app render');
-check(sw.includes("VERSION='v11'")&&sw.includes("'./js/cloud.js?v=11'"),'PWA v11 caches the local cloud adapter');
+check(app.includes('await render();initCloudGate'),'cloud capability gate initializes only after local app render');
+check(sw.includes("VERSION='v11'")&&sw.includes("'./js/cloud-gate.js?v=11'")&&sw.includes("'./js/cloud.js?v=11'"),'PWA v11 caches gate and cloud adapter');
 check(index.includes('./app.js?v=11'),'HTML loads runtime v11');
 if(failures.length){console.error(`\n${failures.length} Phase 1 cloud QA failure(s)`);process.exit(1)}
 console.log('\nPhase 1 cloud integrity passed');
