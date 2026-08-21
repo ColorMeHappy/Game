@@ -1,0 +1,24 @@
+import fs from'node:fs';
+const root='legal-app',fail=[];const bad=m=>{fail.push(m);console.error('FAIL',m)},ok=m=>console.log('PASS',m),read=p=>fs.readFileSync(`${root}/${p}`,'utf8'),json=p=>JSON.parse(read(p));
+const pack=json('content/practice/index.json'),idx=json('content/app-index.json');
+const coreSource=read('js/practice-core.js');const core=await import(`data:text/javascript;base64,${Buffer.from(coreSource).toString('base64')}`);
+const types=['issue_spotting','missing_facts','procedural_ordering','document_selection','deadline_lab','calculation_lab','strategy_lab'];
+if(pack.schemaVersion!=='1.0.0'||pack.contentRelease!=='2026.08.22.1'||pack.jurisdiction!=='FR')bad('practice pack metadata');else ok('practice pack metadata');
+if(pack.tasks?.length!==14||new Set(pack.tasks.map(t=>t.id)).size!==14)bad('14 unique Practice tasks');else ok('14 unique Practice tasks');
+for(const type of types){const count=pack.tasks.filter(t=>t.type===type).length;if(count!==2)bad(`${type}: expected 2 tasks, got ${count}`);else ok(`${type}: 2 fixtures`)}
+for(const task of pack.tasks){const errors=core.validatePracticeTask(task);if(errors.length)bad(`${task.id}: ${errors.join(', ')}`);if(!task.remediation.every(r=>/^((corp|tax|imm|re)-\d{2})-subtopic-\d+$/.test(r.target)&&r.target.startsWith(`${r.lessonId}-`)))bad(`${task.id}: exact remediation target`);const hosts=task.sources.map(s=>new URL(s.url).hostname);if(hosts.some(h=>!['service-public.fr','www.service-public.fr','entreprendre.service-public.fr','www.impots.gouv.fr','impots.gouv.fr','bofip.impots.gouv.fr'].includes(h)))bad(`${task.id}: non-official source host`)}
+const multi=pack.tasks.find(t=>t.kind==='multi');const perfect=new Set(multi.options.filter(o=>o.correct).map(o=>o.id));if(core.evaluatePractice(multi,{selected:perfect}).score!==100)bad('multi deterministic perfect score');else ok('multi deterministic perfect score');if(core.evaluatePractice(multi,{selected:new Set([multi.options.find(o=>!o.correct).id])}).score>=50)bad('multi distractor scoring');else ok('multi distractor scoring');
+const order=pack.tasks.find(t=>t.kind==='order');if(core.evaluatePractice(order,{order:order.correctOrder}).score!==100)bad('order perfect score');else ok('order perfect score');const rotated=order.correctOrder.slice(1).concat(order.correctOrder[0]);if(core.evaluatePractice(order,{order:rotated}).score>=100)bad('order partial scoring');else ok('order partial scoring');
+const date=pack.tasks.find(t=>t.kind==='date');if(core.evaluatePractice(date,{input:date.correctDate}).score!==100)bad('deadline exact date score');else ok('deadline exact date score');
+for(const number of pack.tasks.filter(t=>t.kind==='number'))if(core.evaluatePractice(number,{input:String(number.correctValue)}).score!==100)bad(`${number.id}: exact numeric score`);
+const practiceState=read('js/practice-state.js'),practiceEvidence=read('js/practice-evidence.js'),practiceCloud=read('js/practice-cloud.js'),practiceUi=read('js/practice.js'),app=read('app.js'),sw=read('service-worker.js'),html=read('index.html');
+if(practiceState.includes('lessonProgress')||practiceState.includes('openLessonProgress')||practiceState.includes('answerQuestion'))bad('Practice mutates Lesson Mastery');else ok('Practice isolated from Lesson Mastery');
+if(!practiceState.includes('practice:${taskId}')||!practiceState.includes('eligibleForSkill:firstEvidence'))bad('Practice XP/evidence anti-farming');else ok('Practice local anti-farming');
+if(!practiceEvidence.includes("sourceType:'practice'")||!practiceEvidence.includes('evidence-queued'))bad('Practice -> Skill Evidence');else ok('Practice -> Skill Evidence');
+if(!practiceCloud.includes("from('practice_runs')")||!practiceCloud.includes('event_id:row.eventId')||!practiceCloud.includes("res.error.code!=='23505'"))bad('Practice cloud append/idempotency');else ok('Practice cloud append/idempotency');
+if(/openai|anthropic|gemini|generative ai api|chatgpt/i.test(practiceUi+coreSource+JSON.stringify(pack.tasks)))bad('generative AI in deterministic Practice core');else ok('no generative AI dependency');
+if(!app.includes('initPracticeLab')||!app.includes('initPracticeEvidence')||!app.includes('initPracticeCloud'))bad('Practice runtime integration');else ok('Practice runtime integration');
+if(!html.includes('practice.css?v=15')||!html.includes('app.js?v=15'))bad('Practice asset integration');else ok('Practice asset integration');
+if(idx.runtimeVersion!=='15'||idx.practiceIndexFile!=='content/practice/index.json')bad('Phase 3 runtime metadata');else ok('Phase 3 runtime metadata');
+if(!sw.includes("const VERSION='v15'")||!sw.includes("'./content/practice/index.json'")||!sw.includes("'./js/practice-core.js'"))bad('Practice offline cache');else ok('Practice offline cache');
+if(fail.length){console.error(`PRACTICE QA FAILED ${fail.length}`);process.exit(1)}console.log('PHASE 3 PRACTICE LAB INTEGRITY PASSED');

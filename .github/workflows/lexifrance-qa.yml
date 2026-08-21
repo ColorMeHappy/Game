@@ -5,8 +5,7 @@ on:
     branches:
       - main
       - lexifrance-v5-solve2
-      - lexifrance-next-phase1
-      - lexifrance-next-phase2-foundation
+      - 'lexifrance-next-phase*'
     paths:
       - 'legal-app/**'
       - '.github/workflows/lexifrance-qa.yml'
@@ -21,7 +20,7 @@ concurrency:
 jobs:
   integrity:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 4
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -40,6 +39,8 @@ jobs:
         run: node legal-app/qa-cloud.mjs
       - name: Skill Graph foundation integrity
         run: node legal-app/qa-skill.mjs
+      - name: Phase 3 deterministic Practice Lab integrity
+        run: node legal-app/qa-practice.mjs
       - name: Quiz editorial integrity
         run: node legal-app/qa-quiz.mjs
       - name: SOLVE 2.0 schema and progression
@@ -55,7 +56,7 @@ jobs:
 
   browser:
     needs: integrity
-    timeout-minutes: 7
+    timeout-minutes: 9
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -74,10 +75,12 @@ jobs:
         run: timeout 180s node legal-app/e2e-wrapper.mjs
       - name: Confidence calibration behavior
         run: timeout 120s node legal-app/qa-confidence.mjs
+      - name: Phase 3 Practice Lab browser, scoring, anti-farming and offline E2E
+        run: timeout 180s node legal-app/qa-practice-browser.mjs
 
   accessibility:
     needs: integrity
-    timeout-minutes: 7
+    timeout-minutes: 9
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -94,10 +97,12 @@ jobs:
           sleep 2
       - name: WCAG accessibility regression
         run: timeout 150s node legal-app/qa-a11y.mjs
+      - name: Phase 3 Practice Lab WCAG regression
+        run: timeout 120s node legal-app/qa-practice-a11y.mjs
 
   webkit:
     needs: integrity
-    timeout-minutes: 9
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -114,11 +119,13 @@ jobs:
           sleep 2
       - name: iPhone portrait-only WebKit QA
         run: timeout 120s node legal-app/webkit-wrapper.mjs
+      - name: Phase 3 Practice Lab WebKit/iPhone QA
+        run: timeout 120s node legal-app/qa-practice-webkit.mjs
 
   cloud-live:
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/lexifrance-next-phase2-foundation' && contains(github.event.head_commit.message, '[cloud-live]') }}
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/lexifrance-next-phase') && contains(github.event.head_commit.message, '[cloud-live]') }}
     needs: [integrity, browser, accessibility, webkit]
-    timeout-minutes: 7
+    timeout-minutes: 9
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -135,3 +142,5 @@ jobs:
           sleep 2
       - name: Phase 1 live anonymous auth, sync, conflict, RLS and account-upgrade gate
         run: timeout 180s node legal-app/qa-cloud-live.mjs
+      - name: Phase 3 Practice live persistence, RLS and server anti-farming gate
+        run: timeout 180s node legal-app/qa-practice-cloud-live.mjs
