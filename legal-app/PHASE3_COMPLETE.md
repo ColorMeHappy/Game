@@ -93,7 +93,7 @@ The live `record_skill_evidence` function is SECURITY INVOKER and accepts `quiz`
 
 ## Explainability
 
-Phase 3 now includes `Practice Evidence trail` in Profile after Skill Graph.
+Phase 3 includes `Practice Evidence trail` in Profile after Skill Graph.
 
 It reads only the current authenticated user's accepted `skill_evidence` rows through RLS and shows:
 
@@ -142,18 +142,31 @@ Verified results:
 After rollback/cleanup:
 
 - `auth.users = 0`;
+- `profiles = 0`;
+- `user_state = 0`;
+- `sync_receipts = 0`;
 - `practice_runs = 0`;
 - `skill_evidence = 0`;
 - `confidence_events = 0`;
 - `skill_mastery = 0`.
 
-## Database integrity
+## Database integrity and reproducibility
 
 Phase 3 migrations add Practice evidence support and tighten the stored effective evidence weight constraint to:
 
 `weight > 0 AND weight <= 1.25`
 
 This accommodates the intended maximum difficulty multiplier while preventing arbitrary high stored weights.
+
+The exact live Phase 3 migration versions are now persisted in GitHub:
+
+- `20260821222109_lexifrance_phase3_practice_evidence.sql`
+- `20260822071328_lexifrance_phase3_practice_weight_bound.sql`
+- `20260822071335_lexifrance_phase3_practice_weight_bound_tighten.sql`
+
+`qa-supabase-migrations.mjs` verifies that the migration files exist and still contain the Practice unique index, SECURITY INVOKER contract, source-type validation, input weight limit and final stored-weight bound.
+
+Live `Supabase.list_migrations` was compared to these exact version/name pairs before closure. This removes Phase 3 live/repository migration drift.
 
 Supabase Security Advisor after the Phase 3 DDL shows no new Phase-3-specific RLS ownership defect. Anonymous-access warnings are expected by design because LexiFrance intentionally uses Supabase Anonymous Sign-In while ownership predicates remain `auth.uid()` scoped.
 
@@ -165,7 +178,7 @@ Legally sensitive deterministic fixtures were checked against current primary/of
 
 Examples:
 
-- Code de la construction et de l'habitation, Article L271-1: non-professional residential-property buyer has a ten-day withdrawal period starting the day after the first presentation / qualifying direct delivery of the notified act. The current article remains in force in 2026.
+- Code de la construction et de l'habitation, Article L271-1: the non-professional residential-property buyer's ten-day withdrawal period starts the day after qualifying notification / direct delivery. The current article remains in force in 2026.
 - Current OQTF procedural teaching separates departure deadline from judicial filing deadline and distinguishes general procedure from assignation/rétention accelerated procedures.
 - TVA fixtures distinguish general franchise-en-base thresholds from profession-specific rules and explicitly treat provided rates/amounts as exercise facts when appropriate.
 - Residential deposit exercises distinguish the deposit from the final rent and require evidence/justification for deductions.
@@ -174,12 +187,13 @@ Practice content is educational and deliberately avoids pretending that a determ
 
 ## QA gates encoded in repository
 
-The Phase 3 release gate now includes:
+The Phase 3 release gate includes:
 
 - JavaScript syntax checks;
 - module import/export integrity;
 - core LexiFrance integrity;
 - Cloud Foundation integrity;
+- Supabase migration reproducibility;
 - Skill Graph integrity;
 - deterministic Practice schema/scoring integrity;
 - Quiz editorial integrity;
@@ -203,6 +217,8 @@ The legal content cache remains Network First with verified-cache fallback. Prac
 
 ## Exit decision
 
-All Phase 3 functional requirements are implemented and the live database security/idempotency invariants were independently re-verified before this checkpoint.
+All Phase 3 functional requirements are implemented. The live database security/idempotency invariants, migration ledger, legal deadline fixture and cleanup state were independently re-verified before this final checkpoint.
+
+This commit deliberately carries `[cloud-live]` as the final Phase 3 branch commit so the repository workflow can run the complete Chromium + accessibility + WebKit + live cloud release gate without being cancelled by a later Phase 3 push.
 
 Phase 4 may begin only from this Phase 3 checkpoint and must preserve the deterministic Search and Practice fallback paths.
