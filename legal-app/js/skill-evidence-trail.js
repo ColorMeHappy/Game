@@ -42,20 +42,22 @@ async function fetchEvidence(){
   if(res.error)throw res.error;writeCache(meta.userId,res.data||[]);lastFetchAt=Date.now();await render();return true;
 }
 function evidenceRow(row,titles){const skill=skillById.get(row.skill_id)||{title:row.skill_id};const taskTitle=titles.get(row.source_id)||row.source_id;const confidence=row.confidence==null?'не измерена':`${row.confidence}/5`;return `<article class="card evidence-trail-row"><div class="evidence-trail-head"><div><span class="tag">Practice Evidence · ${esc(row.area)}</span><h3>${esc(taskTitle)}</h3></div><b>${Math.round(Number(row.raw_score)||0)}/100</b></div><div class="evidence-trail-grid"><div><span>Навык</span><strong>${esc(skill.title)}</strong></div><div><span>Difficulty</span><strong>${Math.round(Number(row.difficulty)||0)}/10</strong></div><div><span>Confidence</span><strong>${esc(confidence)}</strong></div><div><span>Вес evidence</span><strong>${Math.round((Number(row.weight)||0)*100)}%</strong></div></div><p class="small">Accepted evidence от ${esc(formatDate(row.created_at))}. Эта запись участвует в расчете Proven/Calibrated для навыка «${esc(skill.title)}». Повтор той же Practice-задачи для этого навыка сервером повторно не засчитывается.</p></article>`}
+function signatureFor(meta,rows){return JSON.stringify([meta.userId||null,...rows.slice(0,8).map(row=>[row.event_id,row.skill_id,row.source_id,row.raw_score,row.created_at])])}
 async function render(){
   if((location.hash||'#home')!=='#profile')return;
   const root=document.querySelector('#root');if(!root)return;
-  root.querySelector('[data-evidence-trail]')?.remove();
   const meta=cloudMeta();const rows=readCache(meta.userId);const titles=await taskTitles();
   const skillSection=[...root.querySelectorAll('.section')].find(section=>section.querySelector('.skill-list')||/Skill Graph/i.test(section.textContent||''));if(!skillSection)return;
+  const signature=signatureFor(meta,rows),existing=root.querySelector('[data-evidence-trail]');if(existing?.dataset.signature===signature)return;
   const body=rows.length?`<div class="evidence-trail-list">${rows.slice(0,8).map(row=>evidenceRow(row,titles)).join('')}</div>`:`<div class="card legal-card empty-state"><h3>Practice Evidence пока нет</h3><p>После первой синхронизированной Practice-задачи здесь появится точная запись: какая задача, какой навык, score, difficulty и confidence повлияли на Skill Graph.</p></div>`;
-  skillSection.insertAdjacentHTML('afterend',`<section class="section evidence-trail" data-evidence-trail><div class="section-head"><div class="section-title"><div class="section-num">P3</div><h2>Practice Evidence trail</h2></div><div class="section-meta">${rows.length?`${rows.length} accepted`:'Explainability'}</div></div><p class="page-copy">Skill Graph не является «черным ящиком»: ниже показаны сервером принятые Practice Evidence, которые реально участвуют в расчете навыков.</p>${body}</section>`)
+  const html=`<section class="section evidence-trail" data-evidence-trail data-signature="${esc(signature)}"><div class="section-head"><div class="section-title"><div class="section-num">P3</div><h2>Practice Evidence trail</h2></div><div class="section-meta">${rows.length?`${rows.length} accepted`:'Explainability'}</div></div><p class="page-copy">Skill Graph не является «черным ящиком»: ниже показаны сервером принятые Practice Evidence, которые реально участвуют в расчете навыков.</p>${body}</section>`;
+  if(existing){existing.outerHTML=html;return}skillSection.insertAdjacentHTML('afterend',html)
 }
 function schedule(ms=300){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{render();if(Date.now()-lastFetchAt>1500)fetchEvidence().catch(error=>console.warn('LexiFrance evidence trail deferred',error))},ms)}
 export function initSkillEvidenceTrail(){
   if(started)return;started=true;
   observer=new MutationObserver(()=>{if((location.hash||'#home')==='#profile')schedule(100)});observer.observe(document.querySelector('#root')||document.body,{childList:true,subtree:true});
-  window.addEventListener('hashchange',()=>schedule(120));window.addEventListener('online',()=>schedule(200));window.addEventListener('lexifrance:skill-cache-updated',()=>schedule(100));window.addEventListener('lexifrance:evidence-queued',()=>schedule(900));
+  window.addEventListener('hashchange',()=>schedule(120));window.addEventListener('online',()=>schedule(200));window.addEventListener('lexifrance:skill-cache-updated',()=>schedule(100));window.addEventListener('lexifrance:evidence-queued',()=>schedule(900));window.addEventListener('lexifrance:evidence-trail-updated',()=>render());
   [1000,2600,6000].forEach(ms=>setTimeout(()=>schedule(0),ms));render();
 }
 export async function refreshSkillEvidenceTrail(){return fetchEvidence()}
