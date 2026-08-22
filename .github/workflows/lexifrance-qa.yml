@@ -20,7 +20,7 @@ concurrency:
 jobs:
   integrity:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,7 +29,7 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check legal-app/app.js
-          for f in legal-app/js/*.js; do node --check "$f"; done
+          for f in legal-app/js/*.js legal-app/api/*.js; do node --check "$f"; done
           for f in legal-app/qa*.mjs legal-app/e2e.mjs legal-app/e2e-wrapper.mjs legal-app/webkit-smoke.mjs legal-app/webkit-wrapper.mjs; do node --check "$f"; done
       - name: Import/export graph
         run: node legal-app/qa-imports.mjs
@@ -43,6 +43,8 @@ jobs:
         run: node legal-app/qa-skill.mjs
       - name: Phase 3 deterministic Practice Lab integrity
         run: node legal-app/qa-practice.mjs
+      - name: Phase 4 verified Legal RAG integrity
+        run: node legal-app/qa-rag.mjs
       - name: Quiz editorial integrity
         run: node legal-app/qa-quiz.mjs
       - name: SOLVE 2.0 schema and progression
@@ -58,7 +60,7 @@ jobs:
 
   browser:
     needs: integrity
-    timeout-minutes: 9
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -79,6 +81,8 @@ jobs:
         run: timeout 120s node legal-app/qa-confidence.mjs
       - name: Phase 3 Practice Lab browser, scoring, anti-farming and offline E2E
         run: timeout 180s node legal-app/qa-practice-browser.mjs
+      - name: Phase 4 deterministic fallback and verified source UI
+        run: timeout 120s node legal-app/qa-rag-browser.mjs
 
   accessibility:
     needs: integrity
@@ -127,7 +131,7 @@ jobs:
   cloud-live:
     if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/lexifrance-next-phase') && contains(github.event.head_commit.message, '[cloud-live]') }}
     needs: [integrity, browser, accessibility, webkit]
-    timeout-minutes: 9
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
