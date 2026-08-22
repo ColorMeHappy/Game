@@ -37,6 +37,8 @@ jobs:
         run: node legal-app/qa.mjs
       - name: Cloud and sync integrity
         run: node legal-app/qa-cloud.mjs
+      - name: Supabase migration reproducibility
+        run: node legal-app/qa-supabase-migrations.mjs
       - name: Skill Graph foundation integrity
         run: node legal-app/qa-skill.mjs
       - name: Phase 3 deterministic Practice Lab integrity
