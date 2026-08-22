@@ -1,9 +1,10 @@
 import{boot,idx}from'./js/data.js';
 import{migrateCourseV5,migrateSolveV2}from'./js/state.js';
 import{initLearningEvidence}from'./js/learning-evidence.js';
-import{initPracticeEvidence}from'./js/practice-evidence.js?v=15';
-import{initPracticeCloud}from'./js/practice-cloud.js?v=15';
-import{initPracticeLab}from'./js/practice.js?v=15';
+import{initPracticeEvidence}from'./js/practice-evidence.js?v=16';
+import{initPracticeCloud}from'./js/practice-cloud.js?v=16';
+import{initPracticeLab}from'./js/practice.js?v=16';
+import{initSkillEvidenceTrail}from'./js/skill-evidence-trail.js?v=16';
 import{initProductAnalytics,trackPage}from'./js/analytics.js';
 import{initCloudGate}from'./js/cloud-gate.js?v=14';
 import{shell,loading,errorBox}from'./js/ui.js';
@@ -27,5 +28,5 @@ window.addEventListener('hashchange',()=>{const p=(location.hash||'#home').slice
 window.addEventListener('lexifrance:skill-cache-updated',()=>{if(page==='profile')render()});
 window.addEventListener('lexifrance:open-review',event=>{const detail=event?.detail||{};if(detail.lessonId)ctx.openLesson(detail.lessonId,detail.target).catch(error=>console.error(error))});
 appRoot.innerHTML=loading('Загрузка LexiFrance...');
-try{await boot();migrateCourseV5(idx().legacyLessonMap||{});migrateSolveV2();await render();initPracticeLab();await initProductAnalytics({contentRelease:idx().contentRelease});trackPage(page);initCloudGate({contentRelease:idx().contentRelease,onHydrate:()=>render()}).catch(e=>console.warn('LexiFrance cloud unavailable',e))}catch(e){console.error(e);appRoot.innerHTML=`<main style="padding:20px">${errorBox(e)}</main>`}
+try{await boot();migrateCourseV5(idx().legacyLessonMap||{});migrateSolveV2();await render();initPracticeLab();initSkillEvidenceTrail();await initProductAnalytics({contentRelease:idx().contentRelease});trackPage(page);initCloudGate({contentRelease:idx().contentRelease,onHydrate:()=>render()}).catch(e=>console.warn('LexiFrance cloud unavailable',e))}catch(e){console.error(e);appRoot.innerHTML=`<main style="padding:20px">${errorBox(e)}</main>`}
 if('serviceWorker'in navigator){let refreshing=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(refreshing)return;refreshing=true;location.reload()});window.addEventListener('load',async()=>{try{const reg=await navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'});await reg.update();requestPortraitLock()}catch(e){console.error(e)}})}
