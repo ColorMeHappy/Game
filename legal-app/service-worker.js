@@ -1,8 +1,8 @@
-const VERSION='v15';
+const VERSION='v16';
 const STATIC=`lexifrance-static-${VERSION}`;
 const RUNTIME=`lexifrance-runtime-${VERSION}`;
 const LEGAL=`lexifrance-legal-${VERSION}`;
-const SHELL=['./','./index.html','./app.css?v=11','./quiz.css?v=11','./solve2.css?v=11','./skill.css?v=14','./practice.css?v=15','./a11y.css?v=1','./app.js?v=15','./manifest.webmanifest','./js/a11y.js?v=1','./js/data.js','./js/state.js','./js/cloud-gate.js?v=14','./js/cloud.js','./js/learning-evidence.js','./js/confidence.js','./js/skill-map.js','./js/skill-cache.js','./js/practice-core.js','./js/practice-state.js','./js/practice-evidence.js?v=15','./js/practice-cloud.js?v=15','./js/practice.js?v=15','./js/analytics.js','./js/search-core.js','./js/ui.js','./js/icons.js','./js/pages.js?v=10','./js/lesson.js?v=10','./js/case.js?v=10','./js/legal-enhance.js?v=10'];
+const SHELL=['./','./index.html','./app.css?v=11','./quiz.css?v=11','./solve2.css?v=11','./skill.css?v=14','./practice.css?v=16','./evidence-trail.css?v=16','./a11y.css?v=1','./app.js?v=16','./manifest.webmanifest','./js/a11y.js?v=1','./js/data.js','./js/state.js','./js/cloud-gate.js?v=14','./js/cloud.js','./js/learning-evidence.js','./js/confidence.js','./js/skill-map.js','./js/skill-cache.js','./js/practice-core.js','./js/practice-state.js','./js/practice-evidence.js?v=16','./js/practice-cloud.js?v=16','./js/practice.js?v=16','./js/skill-evidence-trail.js?v=16','./js/analytics.js','./js/search-core.js','./js/ui.js','./js/icons.js','./js/pages.js?v=10','./js/lesson.js?v=10','./js/case.js?v=10','./js/legal-enhance.js?v=10'];
 const STATIC_ASSETS=['./icon.svg'];
 const LESSONS=['corp-01','corp-02','corp-03','corp-04','corp-05','tax-01','tax-02','tax-03','tax-04','imm-01','imm-02','imm-03','imm-04','imm-05','imm-06','re-01','re-02','re-03','re-04','re-05'];
 const CASE_BUNDLES=['corporate-v2','tax-v2','immigration-v2','real-estate-v2'];
