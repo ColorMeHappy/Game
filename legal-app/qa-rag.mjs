@@ -1,0 +1,18 @@
+import fs from'node:fs';
+const r='legal-app',fail=[];const bad=m=>{fail.push(m);console.error('FAIL',m)},ok=m=>console.log('PASS',m),read=p=>fs.readFileSync(`${r}/${p}`,'utf8');
+const idx=JSON.parse(read('content/app-index.json')),searchCore=read('js/search-core.js'),legalSearch=read('js/legal-search.js'),api=read('api/legal-search.js'),sw=read('service-worker.js');
+const schema=read('supabase/migrations/20260822220600_lexifrance_phase4_verified_legal_rag.sql');
+const seed=read('supabase/migrations/20260822220700_lexifrance_phase4_verified_legal_seed.sql');
+const gte=read('supabase/migrations/20260822220800_lexifrance_phase4_gte_semantic_search.sql');
+const edge=read('supabase/functions/lexifrance-legal-search/index.ts');
+if(idx.runtimeVersion!=='17'||idx.verifiedLegalSearch?.rpc!=='hybrid_legal_search')bad('Phase 4 runtime metadata');else ok('Phase 4 runtime metadata');
+if(!searchCore.includes('rankSearch')||!searchCore.includes('scoreSearchEntry'))bad('deterministic Search core removed');else ok('deterministic Search preserved');
+if(!schema.includes('legal_sources')||!schema.includes('legal_source_chunks')||!schema.includes('security invoker')||!schema.includes("status in ('CURRENT','UPDATED')"))bad('verified registry/RLS/function foundation');else ok('verified registry/RLS/function foundation');
+if(!gte.includes('vector(384)')||!gte.includes("embedding_model='gte-small'")||!gte.includes('websearch_to_tsquery')||!gte.includes('p_as_of'))bad('gte hybrid/effective-date migration');else ok('gte hybrid/effective-date migration');
+if((seed.match(/'src-/g)||[]).length<12||(seed.match(/'chunk-/g)||[]).length<20)bad('verified legal seed coverage');else ok('verified legal seed coverage');
+if(!edge.includes("Supabase.ai.Session('gte-small')")||!edge.includes('Authorization:auth')||!edge.includes('p_official_only:true')||!edge.includes('vector.length !== 384'))bad('authenticated semantic Edge Search');else ok('authenticated semantic Edge Search');
+if(!legalSearch.includes('edgeSemantic')||!legalSearch.includes('supabaseLexical')||!legalSearch.includes('CURRENT / UPDATED')||!legalSearch.includes('sessionAccessToken'))bad('browser semantic + lexical fallback');else ok('browser semantic + lexical fallback');
+if(/SERVICE_ROLE|SUPABASE_SERVICE_ROLE/i.test(legalSearch+searchCore))bad('service role leaked into browser Search');else ok('no privileged search secret in browser');
+if(/text-embedding-3-small|1536/.test(api))bad('stale mismatched embedding model in Vercel search route');else ok('Vercel search proxies canonical model');
+if(!sw.includes("const VERSION='v17'")||!sw.includes("'./js/legal-search.js?v=17'"))bad('Phase 4 offline shell cache');else ok('Phase 4 offline shell cache');
+if(fail.length){console.error(`PHASE 4 RAG QA FAILED ${fail.length}`);process.exit(1)}console.log('PHASE 4 VERIFIED RAG INTEGRITY PASSED');
