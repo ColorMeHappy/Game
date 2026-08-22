@@ -3,7 +3,9 @@
 Project ref: `nnexhmzebviispxkpclx`
 Region: `eu-west-3`
 
-## Applied migrations
+## Applied migration history
+
+The authoritative live migration history is:
 
 1. `20260819181508_lexifrance_cloud_foundation`
 2. `20260819182309_lexifrance_cloud_security_hardening`
@@ -11,8 +13,12 @@ Region: `eu-west-3`
 4. `20260820153000_lexifrance_skill_evidence_aggregator`
 5. `20260820154735_lexifrance_skill_confidence_aggregation_fix`
 6. `20260820184750_lexifrance_skill_evidence_integrity_hardening`
+7. `20260820213759_lexifrance_confidence_event_projection`
+8. `20260821222109_lexifrance_phase3_practice_evidence`
+9. `20260822071328_lexifrance_phase3_practice_weight_bound`
+10. `20260822071335_lexifrance_phase3_practice_weight_bound_tighten`
 
-The authoritative migration history lives in Supabase. New reproducibility-sensitive migrations are also stored under `legal-app/supabase/migrations/`.
+Supabase remains the authoritative migration-history ledger. Reproducibility-sensitive migrations from the current development line are stored under `legal-app/supabase/migrations/` with the same version/name as the applied live migration.
 
 ## Phase 1 state model
 
@@ -20,13 +26,13 @@ The authoritative migration history lives in Supabase. New reproducibility-sensi
 
 Writes use `public.save_user_state(...)` with:
 
-- authenticated `auth.uid()` ownership
-- expected `state_version` compare-and-swap
-- `event_id` idempotency through `sync_receipts`
-- explicit `ok`, `duplicate`, or `conflict` result
-- no service-role credential in the browser
+- authenticated `auth.uid()` ownership;
+- expected `state_version` compare-and-swap;
+- `event_id` idempotency through `sync_receipts`;
+- explicit `ok`, `duplicate`, or `conflict` result;
+- no service-role credential in the browser.
 
-Runtime v12 adds an idempotent XP award ledger. Legacy XP is preserved as a baseline while new lesson/case awards use stable keys. When two devices earn different awards offline, cloud conflict merge unions those award keys instead of using `max(xp)` and losing one device's earned XP.
+The XP award ledger uses stable semantic keys. Legacy XP is preserved as a baseline while new lesson/case/practice awards use stable keys. When two devices earn different awards offline, cloud conflict merge unions award keys instead of using `max(xp)` and losing one device's earned XP.
 
 ## Phase 2 Skill Evidence foundation
 
@@ -34,39 +40,61 @@ Runtime v12 adds an idempotent XP award ledger. Legacy XP is preserved as a base
 
 It validates:
 
-- active skill ID
-- known LexiFrance area
-- current source type (`quiz` or `solve_stage`)
-- non-empty source ID
-- difficulty 1-10
-- score 0-100
-- optional confidence 1-5
-- skill weight greater than 0 and no greater than 1
+- active skill ID;
+- known LexiFrance area;
+- supported source type;
+- non-empty source ID;
+- difficulty 1-10;
+- score 0-100;
+- optional confidence 1-5;
+- input skill weight greater than 0 and no greater than 1.
 
 Evidence remains retry-idempotent on `(user_id, event_id, skill_id)`.
 
-Quiz evidence now has an additional cross-device integrity rule: a partial unique index on `(user_id, source_type, source_id, skill_id)` for `source_type='quiz'`. Two devices can therefore not both claim a separate first-attempt evidence row for the same question and skill.
+Quiz evidence has an additional cross-device integrity rule: a partial unique index on `(user_id, source_type, source_id, skill_id)` for `source_type='quiz'`.
 
-SOLVE deliberately allows repeated practice, but repeated evidence from the same finalized stage has deterministic diminishing weight: first attempt `1.00`, second `0.60`, third `0.35`, later attempts `0.20`, before task difficulty and skill weight are applied. This preserves useful repeat practice without allowing one dossier stage to dominate the Skill Graph through farming.
-
-Current deterministic client mapping converts existing Quiz cognitive levels and SOLVE stage categories into the 20 registered legal skills. Explicit `skillsMeasured` and `skillWeights` metadata can replace fallback mappings as content is editorially upgraded.
+SOLVE deliberately allows repeated practice, but repeated evidence from the same finalized stage has deterministic diminishing weight: first attempt `1.00`, second `0.60`, third `0.35`, later attempts `0.20`, before task difficulty and skill weight are applied.
 
 The aggregator keeps separate concepts:
 
-- `proven_score` - result weighted by task/skill weight and difficulty
-- `confidence_adjusted_score` - the same evidence with extra weight for confidently-wrong answers and reduced weight for high-score/low-confidence answers
-- `freshness_score` - recency indicator that does not erase permanent proven competence
-- `evidence_count` - count of accepted evidence rows
-
-A confidently-wrong result therefore lowers calibrated competence more strongly without rewriting the underlying proven score.
-
-### Trust boundary
-
-Current Quiz/SOLVE evidence is learning-product telemetry from the authenticated browser. Server validation prevents ownership violations, malformed values, cross-device Quiz duplication and unlimited same-stage SOLVE weight, but it does not turn a browser result into a professional credential. Future professional/open-ended evaluation must use the stricter pipeline defined by the roadmap:
-
-`evaluation -> schema validation -> business-rule validation -> score normalization -> skill_evidence -> deterministic aggregator -> skill_mastery`.
+- `proven_score` - result weighted by task/skill weight and difficulty;
+- `confidence_adjusted_score` - evidence calibrated by confidence;
+- `freshness_score` - recency indicator that does not erase permanent proven competence;
+- `evidence_count` - count of accepted evidence rows.
 
 No AI evaluator may write `skill_mastery` directly.
+
+## Phase 3 Practice evidence
+
+Phase 3 adds `practice` as an accepted source type without changing Lesson Mastery semantics.
+
+Server anti-farming is enforced by:
+
+```sql
+create unique index skill_evidence_practice_once_idx
+on public.skill_evidence(user_id, source_type, source_id, skill_id)
+where source_type = 'practice';
+```
+
+This means a retry from another browser/device with a new event ID cannot create a second accepted evidence row for the same Practice task + skill.
+
+The RPC still accepts an input skill weight only in `(0, 1]`. After difficulty multiplication, the stored effective evidence weight can reach at most `1.25`, so the database check is deliberately:
+
+```sql
+weight > 0 and weight <= 1.25
+```
+
+`public.practice_runs` stores completed Practice attempts separately from Lesson Mastery. It uses ownership RLS and unique `(user_id, event_id)` idempotency. Client state remains offline-first and later hydrates/flushes against the same cloud identity.
+
+The Profile `Practice Evidence trail` reads only the authenticated user's accepted `skill_evidence` rows through RLS and explains which Practice task/skill/score/difficulty/confidence contributed to Skill Graph.
+
+## Trust boundary
+
+Quiz/SOLVE/Practice evidence is learning-product evidence generated by the authenticated client. Server validation prevents ownership violations, malformed values and defined forms of farming, but it does not turn a browser result into a professional credential.
+
+Future open-ended/AI evaluation must follow the stricter pipeline:
+
+`evaluation -> schema validation -> business-rule validation -> score normalization -> skill_evidence -> deterministic aggregator -> skill_mastery`.
 
 ## RLS
 
@@ -74,30 +102,30 @@ All user-owned public tables have RLS enabled. Ownership uses `auth.uid()` again
 
 Authorization roles for future reviewer/editor/admin flows live outside editable user metadata in `private.user_roles`.
 
+Anonymous Supabase identities use the `authenticated` PostgreSQL role and remain isolated through `auth.uid()` ownership predicates. Supabase Security Advisor therefore reports expected anonymous-access warnings for these policies; those warnings are not equivalent to cross-user access.
+
 ## Authentication
 
-Frontend is prepared for soft authentication:
+Runtime flow:
 
 Guest/local -> anonymous Supabase user -> permanent account.
 
-Anonymous users use Supabase's `authenticated` PostgreSQL role and remain isolated through `auth.uid()` RLS.
-
-Live browser Auth QA must still prove the complete fresh-browser anonymous -> cloud -> offline/reconnect -> permanent-account sequence before Phase 1 is considered fully closed. Until that gate is green, Phase 2 code remains development-branch work and must not be promoted as completed production functionality.
+Local/offline startup remains independent from cloud availability. The frontend contains only the Supabase publishable key.
 
 ## Offline sync
 
-The browser writes local progress first. A compact state sync queue stores:
+The browser writes local progress first. The state sync queue stores semantic state events and the evidence/practice queues store retry-safe event IDs. Reconnect flushes state through the CAS RPC, evidence through `record_skill_evidence(...)`, and Practice attempts through `practice_runs`.
 
-- `eventId`
-- `entityType`
-- `entityId`
-- `operation`
-- `payload`
-- `createdAt`
-- `syncStatus`
+## Current Phase 3 backend verification
 
-Skill evidence has a separate bounded offline queue. Reconnect flushes state through the CAS RPC and evidence through `record_skill_evidence(...)`. Both use stable event IDs for retry safety.
+Transaction-scoped live verification on 2026-08-22 proved:
 
-## Security gate
+- own Practice write/read succeeds;
+- first Practice evidence returns `ok`;
+- a new event ID for the same task + skill returns `duplicate`;
+- accepted evidence row count remains exactly 1;
+- second user reads 0 rows from first user's Practice/evidence;
+- forged cross-user Practice insert is blocked with SQLSTATE `42501`;
+- rollback leaves production learning tables and temporary auth users empty.
 
-Supabase Security Advisor returned no findings after the Phase 2 evidence integrity migration. The frontend uses only a publishable key.
+Supabase Performance Advisor currently reports only an informational unused Skill Mastery index on the empty/pre-production dataset.
