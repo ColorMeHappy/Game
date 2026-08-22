@@ -1,3 +1,38 @@
 <!doctype html>
-<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#101520"><title>BioCore Tower Showcase - Art Pass</title><link rel="stylesheet" href="style.css"><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/"}}</script></head>
-<body><div id="brand" class="panel"><small>BIOCORE DEFENSE v203</small><strong>Tower Showcase - Art Pass</strong><em>Hybrid asset + procedural hard-surface pipeline</em></div><div id="status" class="panel"><span class="dot"></span><span id="statusText">LOADING GAME ASSETS</span></div><div id="info" class="panel"><div id="name"></div><div id="role"></div><div class="row"><span>Cost</span><b id="cost"></b></div><div class="row"><span>Range</span><b id="range"></b></div><div class="row"><span>Fire Rate</span><b id="rate"></b></div><div class="row"><span>Damage</span><b id="damage"></b></div><div class="desc" id="desc"></div></div><div id="controls" class="panel"><button id="combat" class="on">Combat</button><button id="idle">Idle</button></div><div id="dock" class="panel"></div><div id="loader"><div class="loaderBox"><div class="orb"></div>INITIALIZING BIOCORE VISUAL PIPELINE</div></div><script type="module" src="app.js"></script></body></html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#101520">
+  <title>BioCore Tower Showcase - Art Pass</title>
+  <link rel="stylesheet" href="style.css?v=safari2">
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/"}}</script>
+</head>
+<body>
+  <div id="brand" class="panel"><small>BIOCORE DEFENSE v203</small><strong>Tower Showcase - Art Pass</strong><em>Hybrid asset + procedural hard-surface pipeline</em></div>
+  <div id="status" class="panel"><span class="dot"></span><span id="statusText">LOADING GAME ASSETS</span></div>
+  <div id="info" class="panel"><div id="name"></div><div id="role"></div><div class="row"><span>Cost</span><b id="cost"></b></div><div class="row"><span>Range</span><b id="range"></b></div><div class="row"><span>Fire Rate</span><b id="rate"></b></div><div class="row"><span>Damage</span><b id="damage"></b></div><div class="desc" id="desc"></div></div>
+  <div id="controls" class="panel"><button id="combat" class="on">Combat</button><button id="idle">Idle</button></div>
+  <div id="dock" class="panel"></div>
+  <div id="loader"><div class="loaderBox"><div class="orb"></div>INITIALIZING BIOCORE VISUAL PIPELINE</div></div>
+  <script>
+    window.__biocoreReady = false;
+    const failSafe = (message) => {
+      const loader = document.getElementById('loader');
+      const status = document.getElementById('statusText');
+      if (status) status.textContent = message || 'SAFE FALLBACK ACTIVE';
+      if (loader) { loader.style.opacity = '0'; loader.style.pointerEvents = 'none'; }
+    };
+    window.addEventListener('error', (e) => {
+      console.error('[BioCore global error]', e.error || e.message);
+      setTimeout(() => failSafe('RUNTIME FALLBACK ACTIVE'), 100);
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+      console.error('[BioCore promise rejection]', e.reason);
+      setTimeout(() => failSafe('RUNTIME FALLBACK ACTIVE'), 100);
+    });
+    setTimeout(() => { if (!window.__biocoreReady) failSafe('STARTUP FALLBACK ACTIVE'); }, 7000);
+  </script>
+  <script type="module" src="app.js?v=safari2"></script>
+</body>
+</html>
