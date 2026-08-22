@@ -1,38 +1,11 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-  <meta name="theme-color" content="#101520">
-  <title>BioCore Tower Showcase - Art Pass</title>
-  <link rel="stylesheet" href="style.css?v=safari2">
-  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.168.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.168.0/examples/jsm/"}}</script>
-</head>
-<body>
-  <div id="brand" class="panel"><small>BIOCORE DEFENSE v203</small><strong>Tower Showcase - Art Pass</strong><em>Hybrid asset + procedural hard-surface pipeline</em></div>
-  <div id="status" class="panel"><span class="dot"></span><span id="statusText">LOADING GAME ASSETS</span></div>
-  <div id="info" class="panel"><div id="name"></div><div id="role"></div><div class="row"><span>Cost</span><b id="cost"></b></div><div class="row"><span>Range</span><b id="range"></b></div><div class="row"><span>Fire Rate</span><b id="rate"></b></div><div class="row"><span>Damage</span><b id="damage"></b></div><div class="desc" id="desc"></div></div>
-  <div id="controls" class="panel"><button id="combat" class="on">Combat</button><button id="idle">Idle</button></div>
-  <div id="dock" class="panel"></div>
-  <div id="loader"><div class="loaderBox"><div class="orb"></div>INITIALIZING BIOCORE VISUAL PIPELINE</div></div>
-  <script>
-    window.__biocoreReady = false;
-    const failSafe = (message) => {
-      const loader = document.getElementById('loader');
-      const status = document.getElementById('statusText');
-      if (status) status.textContent = message || 'SAFE FALLBACK ACTIVE';
-      if (loader) { loader.style.opacity = '0'; loader.style.pointerEvents = 'none'; }
-    };
-    window.addEventListener('error', (e) => {
-      console.error('[BioCore global error]', e.error || e.message);
-      setTimeout(() => failSafe('RUNTIME FALLBACK ACTIVE'), 100);
-    });
-    window.addEventListener('unhandledrejection', (e) => {
-      console.error('[BioCore promise rejection]', e.reason);
-      setTimeout(() => failSafe('RUNTIME FALLBACK ACTIVE'), 100);
-    });
-    setTimeout(() => { if (!window.__biocoreReady) failSafe('STARTUP FALLBACK ACTIVE'); }, 7000);
-  </script>
-  <script type="module" src="app.js?v=safari2"></script>
-</body>
-</html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#07101b">
+<title>BioCore Defense - Tower Showcase</title>
+<link rel="stylesheet" href="reference.css?v=ref6">
+</head><body><div id="app"><div id="viewport"><div id="blur" class="blur"></div><div id="art" class="art"></div><canvas id="fx"></canvas><div class="shade"></div></div><div id="topbar" class="panel"><div class="res"><span class="ri blue">◆</span>5,120</div><div class="res"><span class="ri yellow">⚡</span>2,560</div><div class="res"><span class="ri green">⬢</span>1,250</div></div><div id="brand" class="panel"><small>BIOCORE DEFENSE v203</small><strong>Tower Showcase</strong><em>Reference-locked art build</em></div><div id="wave" class="panel"><div style="font-size:7px;letter-spacing:.13em;color:#b5cade">WAVE</div><div class="n">37</div><div class="wg"><span>ENEMIES</span><b>234</b><span>NEXT WAVE</span><b class="t">00:45</b></div></div><div id="info" class="panel"><div class="head"><div id="mini"></div><div><div id="name">Plasma Cannon</div><div id="role">Core DPS</div></div></div><div class="stat"><span>◆ COST</span><b id="cost">52</b></div><div class="stat"><span>◎ RANGE</span><b id="range">142</b></div><div class="stat"><span>⚡ FIRE RATE</span><b id="rate">1.00/s</b></div><div class="stat"><span>✹ DAMAGE</span><b id="damage">26</b></div></div><div id="mode"><button id="combat" class="m on">Combat</button><button id="idle" class="m">Idle</button></div><div id="badge"><span class="dot"></span>REFERENCE ART ACTIVE</div><div id="dock" class="panel"></div><div id="loader"><div class="lb"><div class="orb"></div>LOADING TOWER ART</div></div></div>
+<script src="sprite-part-0.js?v=ref6"></script><script src="sprite-part-1.js?v=ref6"></script><script src="sprite-part-2.js?v=ref6"></script><script src="sprite-part-3.js?v=ref6"></script><script src="sprite-part-4.js?v=ref6"></script><script src="sprite-part-5.js?v=ref6"></script><script src="sprite-part-6.js?v=ref6"></script><script src="sprite-part-7.js?v=ref6"></script>
+<script src="reference.js?v=ref6"></script></body></html>
