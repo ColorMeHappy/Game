@@ -20,7 +20,7 @@ concurrency:
 jobs:
   integrity:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -45,6 +45,8 @@ jobs:
         run: node legal-app/qa-practice.mjs
       - name: Phase 4 verified Legal RAG integrity
         run: node legal-app/qa-rag.mjs
+      - name: Phases 5-9 professional platform integrity
+        run: node legal-app/qa-professional.mjs
       - name: Quiz editorial integrity
         run: node legal-app/qa-quiz.mjs
       - name: SOLVE 2.0 schema and progression
@@ -60,7 +62,7 @@ jobs:
 
   browser:
     needs: integrity
-    timeout-minutes: 10
+    timeout-minutes: 12
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -83,10 +85,12 @@ jobs:
         run: timeout 180s node legal-app/qa-practice-browser.mjs
       - name: Phase 4 deterministic fallback and verified source UI
         run: timeout 120s node legal-app/qa-rag-browser.mjs
+      - name: Phases 5-9 professional browser and offline fallback
+        run: timeout 150s node legal-app/qa-professional-browser.mjs
 
   accessibility:
     needs: integrity
-    timeout-minutes: 9
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -105,10 +109,12 @@ jobs:
         run: timeout 150s node legal-app/qa-a11y.mjs
       - name: Phase 3 Practice Lab WCAG regression
         run: timeout 120s node legal-app/qa-practice-a11y.mjs
+      - name: Phases 5-9 Professional Hub WCAG regression
+        run: timeout 120s node legal-app/qa-professional-a11y.mjs
 
   webkit:
     needs: integrity
-    timeout-minutes: 10
+    timeout-minutes: 12
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -127,11 +133,13 @@ jobs:
         run: timeout 120s node legal-app/webkit-wrapper.mjs
       - name: Phase 3 Practice Lab WebKit/iPhone QA
         run: timeout 120s node legal-app/qa-practice-webkit.mjs
+      - name: Phases 5-9 Professional Hub WebKit/iPhone QA
+        run: timeout 120s node legal-app/qa-professional-webkit.mjs
 
   cloud-live:
     if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/lexifrance-next-phase') && contains(github.event.head_commit.message, '[cloud-live]') }}
     needs: [integrity, browser, accessibility, webkit]
-    timeout-minutes: 10
+    timeout-minutes: 18
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -150,3 +158,5 @@ jobs:
         run: timeout 180s node legal-app/qa-cloud-live.mjs
       - name: Phase 3 Practice live persistence, RLS and server anti-farming gate
         run: timeout 180s node legal-app/qa-practice-cloud-live.mjs
+      - name: Phases 5-8 live Virtual Client, Drafting, Cold Case, Adversarial/Judge and RLS gate
+        run: timeout 360s node legal-app/qa-professional-live.mjs
