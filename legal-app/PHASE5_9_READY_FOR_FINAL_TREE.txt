@@ -1,0 +1,1 @@
+The next release commit must replace index.html, app-index.json, service-worker.js and add professional runtime assets before [cloud-live] validation.
